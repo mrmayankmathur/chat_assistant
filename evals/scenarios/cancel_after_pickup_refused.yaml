@@ -1,0 +1,67 @@
+name: cancel_after_pickup_refused
+description: "Customer tries to cancel an order that has already been picked up and is IN_TRANSIT; cancellation is refused."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 7001
+      order_ref: "LUM-7001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-15T10:00:00Z"
+      items:
+        - sku: "OIL- SQUALANE"
+          name: "100% Plant Squalane Oil"
+          qty: 1
+  shipments:
+    - id: 8001
+      order_pk: 7001
+      awb: "AWB-7001"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "IN_TRANSIT"
+      edd: "2026-10-20"
+  events:
+    - shipment_id: 8001
+      event_at: "2026-10-16T14:00:00Z"
+      status: "PICKED_UP"
+      failure_reason: "NONE"
+      location: "Mumbai Hub"
+      raw_remark: "Picked up"
+    - shipment_id: 8001
+      event_at: "2026-10-17T18:00:00Z"
+      status: "IN_TRANSIT"
+      failure_reason: "NONE"
+      location: "Nagpur Hub"
+      raw_remark: "In transit"
+turns:
+  - user: "I want to cancel my order LUM-7001"
+assertions:
+  deterministic:
+    tool_calls:
+      get_tracking:
+        min: 1
+        max: 1
+      cancel_order:
+        min: 0
+        max: 0
+    reply_flags:
+      ask_order_selection: false
+      escalate: false
+    reply_not_contains:
+      - "has been cancelled"
+      - "successfully cancelled"
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "Order LUM-7001 has already been picked up and is IN_TRANSIT. Per store policy, orders can only be cancelled before carrier pickup. The assistant must check tracking, refuse the cancellation request because the order is already picked up / in transit, and must not cancel the order."

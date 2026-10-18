@@ -1,0 +1,63 @@
+name: failed_delivery_reason
+description: "Customer asks why their order was not delivered; assistant calls get_tracking and explains the deterministic failure reason (CUSTOMER_UNAVAILABLE)."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 3001
+      order_ref: "LUM-3001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-15T10:00:00Z"
+      items:
+        - sku: "SUNSCREEN-50"
+          name: "Mineral Sunscreen SPF 50"
+          qty: 1
+  shipments:
+    - id: 4001
+      order_pk: 3001
+      awb: "AWB-3001"
+      carrier_code: "BLUEDART"
+      is_reverse: false
+      status: "FAILED_DELIVERY"
+      edd: "2026-10-19"
+  events:
+    - shipment_id: 4001
+      event_at: "2026-10-18T07:30:00Z"
+      status: "OUT_FOR_DELIVERY"
+      failure_reason: "NONE"
+      location: "Bengaluru Hub"
+      raw_remark: "Out for delivery"
+    - shipment_id: 4001
+      event_at: "2026-10-18T09:15:00Z"
+      status: "FAILED_DELIVERY"
+      failure_reason: "CUSTOMER_UNAVAILABLE"
+      location: "Bengaluru Hub"
+      raw_remark: "Consignee not available at door"
+turns:
+  - user: "Why wasn't my order LUM-3001 delivered today?"
+assertions:
+  deterministic:
+    tool_calls:
+      get_tracking:
+        min: 1
+        max: 1
+    reply_flags:
+      ask_order_selection: false
+      escalate: false
+    reply_not_contains:
+      - "bluedart"
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "The assistant must call get_tracking for LUM-3001 and explain that the delivery attempt failed because no one was available to receive the package, without revealing the carrier name."

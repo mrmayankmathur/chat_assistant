@@ -1,0 +1,65 @@
+name: single_in_transit
+description: "Customer owns a single order that is IN_TRANSIT with a future EDD; assistant calls get_tracking once and explains status + EDD without naming the carrier."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 2001
+      order_ref: "LUM-2001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-16T08:00:00Z"
+      items:
+        - sku: "CREAM-RET"
+          name: "Retinol Night Cream"
+          qty: 1
+  shipments:
+    - id: 3001
+      order_pk: 2001
+      awb: "AWB-2001"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "IN_TRANSIT"
+      edd: "2026-10-22"
+  events:
+    - shipment_id: 3001
+      event_at: "2026-10-17T10:00:00Z"
+      status: "PICKED_UP"
+      failure_reason: "NONE"
+      location: "Mumbai Hub"
+      raw_remark: "Picked up from shipper"
+    - shipment_id: 3001
+      event_at: "2026-10-18T06:00:00Z"
+      status: "IN_TRANSIT"
+      failure_reason: "NONE"
+      location: "Pune Hub"
+      raw_remark: "Bagged for destination"
+turns:
+  - user: "Hi, where is my order?"
+assertions:
+  deterministic:
+    tool_calls:
+      get_tracking:
+        min: 1
+        max: 1
+      cancel_order:
+        min: 0
+        max: 0
+    reply_flags:
+      ask_order_selection: false
+      escalate: false
+    reply_not_contains:
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "The customer owns exactly one order (LUM-2001). The assistant must call get_tracking once, state that LUM-2001 is in transit to their city, include the expected delivery date (2026-10-22), and never mention the carrier name."

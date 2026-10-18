@@ -1,0 +1,51 @@
+name: cod_refund_not_applicable
+description: "Customer asks for a refund on a cancelled Cash on Delivery (COD) order; assistant calls get_refund_status and explains that a refund is not applicable for COD orders."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 1010
+      order_ref: "LUM-1010"
+      owner: "customer"
+      payment_mode: "COD"
+      placed_at: "2026-10-16T08:00:00Z"
+      cancelled_at: "2026-10-17T12:00:00Z"
+      items:
+        - sku: "MIST-ALOE"
+          name: "Aloe Vera Soothing Face Mist"
+          qty: 1
+  shipments:
+    - id: 9201
+      order_pk: 1010
+      awb: "AWB-1010"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "CANCELLED"
+      edd: "2026-10-21"
+  events: []
+turns:
+  - user: "When will I receive the refund for my cancelled order LUM-1010?"
+assertions:
+  deterministic:
+    tool_calls:
+      get_refund_status:
+        min: 1
+        max: 1
+    reply_flags:
+      ask_order_selection: false
+      escalate: false
+    reply_not_contains:
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "Order LUM-1010 is a cancelled Cash on Delivery (COD) order. The assistant must call get_refund_status for LUM-1010, receive 'not applicable', and explain clearly to the customer that because LUM-1010 was placed using Cash on Delivery (COD) and cancelled before delivery, no payment was collected and no refund is applicable."

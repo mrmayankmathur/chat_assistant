@@ -1,0 +1,68 @@
+name: human_request_outside_hours
+description: "Customer requests a human agent outside business hours; assistant calls escalate_to_human, sets escalate=true, and informs the customer that an agent will follow up during business hours."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+    business_hours:
+      weekly:
+        mon:
+          - open: "09:00"
+            close: "18:00"
+        tue:
+          - open: "09:00"
+            close: "18:00"
+        wed:
+          - open: "09:00"
+            close: "18:00"
+        thu:
+          - open: "09:00"
+            close: "18:00"
+        fri:
+          - open: "09:00"
+            close: "18:00"
+      overrides: []
+  orders:
+    - order_pk: 8001
+      order_ref: "LUM-8001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-17T09:00:00Z"
+      items:
+        - sku: "BALM-LIP"
+          name: "Peptide Lip Balm"
+          qty: 1
+  shipments:
+    - id: 9001
+      order_pk: 8001
+      awb: "AWB-8001"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "ORDER_PLACED"
+      edd: "2026-10-22"
+  events: []
+turns:
+  - user: "Connect me to a human support agent right now please"
+assertions:
+  deterministic:
+    tool_calls:
+      escalate_to_human:
+        min: 1
+        max: 1
+    reply_flags:
+      escalate: true
+      ask_order_selection: false
+    reply_not_contains:
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "The customer requested a human agent while is_business_hours is false (Sunday). The assistant must call escalate_to_human, set escalate=true on the reply, and inform the customer that their request has been logged for a human agent who will reach out once support hours resume."

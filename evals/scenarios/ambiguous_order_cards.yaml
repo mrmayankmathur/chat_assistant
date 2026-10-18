@@ -1,0 +1,73 @@
+name: ambiguous_order_cards
+description: "Customer has two recent orders and asks a generic WISMO question without picking one; assistant returns order cards with ask_order_selection=true and calls zero tools."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 1001
+      order_ref: "LUM-1001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-16T09:00:00Z"
+      items:
+        - sku: "SERUM-VITC"
+          name: "Vitamin C Glow Serum"
+          qty: 1
+    - order_pk: 1002
+      order_ref: "LUM-1002"
+      owner: "customer"
+      payment_mode: "COD"
+      placed_at: "2026-10-17T14:30:00Z"
+      items:
+        - sku: "CREAM-HA"
+          name: "Hyaluronic Acid Moisturizer"
+          qty: 2
+  shipments:
+    - id: 2001
+      order_pk: 1001
+      awb: "AWB-1001"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "IN_TRANSIT"
+      edd: "2026-10-21"
+    - id: 2002
+      order_pk: 1002
+      awb: "AWB-1002"
+      carrier_code: "BLUEDART"
+      is_reverse: false
+      status: "ORDER_PLACED"
+      edd: "2026-10-23"
+  events: []
+turns:
+  - user: "Where is my order?"
+assertions:
+  deterministic:
+    tool_calls:
+      get_tracking:
+        min: 0
+        max: 0
+      cancel_order:
+        min: 0
+        max: 0
+      escalate_to_human:
+        min: 0
+        max: 0
+    reply_flags:
+      ask_order_selection: true
+      escalate: false
+    reply_not_contains:
+      - "delhivery"
+      - "bluedart"
+      - "let me check"
+      - "please wait"
+  judge: "The customer owns two orders (LUM-1001 and LUM-1002) and did not specify which order they are asking about. The assistant must call zero tools, return both order cards, set ask_order_selection=true, and ask the customer which order they would like to check."

@@ -1,0 +1,76 @@
+name: cancel_requires_confirmation
+description: "Customer asks to cancel an eligible pre-pickup order; assistant asks for explicit confirmation on Turn 1 without calling cancel_order, then calls cancel_order on Turn 2 after customer confirms."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 6001
+      order_ref: "LUM-6001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-18T05:00:00Z"
+      items:
+        - sku: "SERUM-NIAC"
+          name: "Niacinamide 10% Serum"
+          qty: 1
+  shipments:
+    - id: 7001
+      order_pk: 6001
+      awb: "AWB-6001"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "ORDER_PLACED"
+      edd: "2026-10-23"
+  events:
+    - shipment_id: 7001
+      event_at: "2026-10-18T05:05:00Z"
+      status: "ORDER_PLACED"
+      failure_reason: "NONE"
+      location: "Mumbai Warehouse"
+      raw_remark: "Order created"
+turns:
+  - user: "Please cancel my order LUM-6001"
+    assertions:
+      tool_calls:
+        cancel_order:
+          min: 0
+          max: 0
+      reply_flags:
+        ask_order_selection: false
+        escalate: false
+  - user: "Yes, please confirm and cancel LUM-6001"
+    assertions:
+      tool_calls:
+        cancel_order:
+          min: 1
+          max: 1
+      reply_flags:
+        ask_order_selection: false
+        escalate: false
+assertions:
+  deterministic:
+    tool_calls:
+      get_tracking:
+        min: 1
+        max: 2
+      cancel_order:
+        min: 1
+        max: 1
+    reply_flags:
+      ask_order_selection: false
+      escalate: false
+    reply_not_contains:
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "On Turn 1, the assistant must NOT cancel LUM-6001 yet and must ask the customer for explicit confirmation to cancel LUM-6001. On Turn 2, after the customer confirms, the assistant must call cancel_order with customer_confirmed=true and confirm that LUM-6001 has been cancelled."

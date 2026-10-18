@@ -1,0 +1,55 @@
+name: edd_breached_apology
+description: "Customer asks about an order whose EDD has passed while still IN_TRANSIT; assistant calls get_tracking, apologises for the EDD breach, and offers a human agent."
+customer:
+  phone: "+919876543210"
+  email: "alice@example.com"
+  channel: "whatsapp"
+fixtures:
+  now: "2026-10-18T10:00:00Z"
+  tenant:
+    tenant_id: 1
+    name: "Lumina Botanics"
+    timezone: "Asia/Kolkata"
+    cancel_enabled: true
+    edd_breach_days: 2
+    lookback_days: 30
+  orders:
+    - order_pk: 4001
+      order_ref: "LUM-4001"
+      owner: "customer"
+      payment_mode: "PREPAID"
+      placed_at: "2026-10-10T09:00:00Z"
+      items:
+        - sku: "CLEANSER-GENTLE"
+          name: "Gentle Foaming Cleanser"
+          qty: 1
+  shipments:
+    - id: 5001
+      order_pk: 4001
+      awb: "AWB-4001"
+      carrier_code: "DELHIVERY"
+      is_reverse: false
+      status: "IN_TRANSIT"
+      edd: "2026-10-14"
+  events:
+    - shipment_id: 5001
+      event_at: "2026-10-12T11:00:00Z"
+      status: "IN_TRANSIT"
+      failure_reason: "NONE"
+      location: "Delhi Hub"
+      raw_remark: "In transit"
+turns:
+  - user: "My order LUM-4001 was supposed to arrive days ago. Where is it?"
+assertions:
+  deterministic:
+    tool_calls:
+      get_tracking:
+        min: 1
+        max: 1
+    reply_flags:
+      ask_order_selection: false
+    reply_not_contains:
+      - "delhivery"
+      - "let me check"
+      - "please wait"
+  judge: "Order LUM-4001 is IN_TRANSIT and its EDD (2026-10-14) is breached. The assistant must call get_tracking, explicitly apologise for the delay past the expected delivery date (2026-10-14), state the current in-transit status, and offer to connect the customer with a human support agent."
