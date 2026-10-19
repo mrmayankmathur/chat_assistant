@@ -26,13 +26,21 @@ on WhatsApp and web chat—separating deterministic policy enforcement from LLM 
 <details>
 <summary><kbd>Table of Contents</kbd></summary>
 
-- [Why WISMO Chat Assistant](#why-wismo-chat-assistant)
-- [How it works](#how-it-works)
-- [Evaluation and scale snapshot](#evaluation-and-scale-snapshot)
-- [Verify locally](#verify-locally)
-- [Project map](#project-map)
-- [Boundaries and next steps](#boundaries-and-next-steps)
-- [Data, security, and licensing](#data-security-and-licensing)
+- [WISMO Chat Assistant](#wismo-chat-assistant)
+  - [  Why WISMO Chat Assistant](#-why-wismo-chat-assistant)
+  - [How it works](#how-it-works)
+    - [Five non-negotiable design principles](#five-non-negotiable-design-principles)
+    - [The responsibilities stay separate](#the-responsibilities-stay-separate)
+  - [Evaluation and scale snapshot](#evaluation-and-scale-snapshot)
+    - [1. End-to-end behavioral evaluation (`11/11 PASS`)](#1-end-to-end-behavioral-evaluation-1111-pass)
+    - [2. Concurrency, fault-injection, and scale gates (`4/4 PASS`)](#2-concurrency-fault-injection-and-scale-gates-44-pass)
+  - [Verify locally](#verify-locally)
+    - [Live PostgreSQL 16 schema and seed verification](#live-postgresql-16-schema-and-seed-verification)
+    - [Live Anthropic evaluation mode](#live-anthropic-evaluation-mode)
+  - [Project map](#project-map)
+    - [Follow the evidence](#follow-the-evidence)
+  - [Boundaries and next steps](#boundaries-and-next-steps)
+  - [Data, security, and licensing](#data-security-and-licensing)
 
 </details>
 
@@ -58,7 +66,13 @@ A fluent customer-support reply can still leak another customer's tracking detai
     </td>
     <td width="33%" valign="top" align="center">
       <br>
-      <h3 align="center"><img src="https://api.iconify.design/lucide/git-Commit.svg?color=%232563EB" width="18" height="18" alt="">&nbsp; Fenced State &amp; Handoff</h3>
+      <h3 align="center">
+        <svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <line x1="3" x2="9" y1="12" y2="12" />
+          <line x1="15" x2="21" y1="12" y2="12" />
+        </svg>
+&nbsp; Fenced State &amp; Handoff</h3>
       <p align="center">Idempotency claims, thread fencing tokens, and transactional outbox events prevent duplicate tool side-effects, split-brain writes, and lost human escalations.</p>
       <br>
     </td>
