@@ -278,7 +278,7 @@ async def evaluate_judge_rubric(
     scenario: ScenarioSpec,
     turns: Sequence[TurnExecutionTrace],
     judge_client: Any,
-    model: str = "claude-opus-5-5",
+    model: str = "gpt-6-luna",
 ) -> JudgeResult:
     """Evaluate the scenario conversation against `scenario.assertions.judge` rubric via structured output."""
     customer_orders = [

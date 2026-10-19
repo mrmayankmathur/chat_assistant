@@ -858,7 +858,7 @@ def run_gate4_300_tps_benchmark(
     output_tokens_per_call: int = 85,
 ) -> Gate4LoadBenchmarkReport:
     """Executes a deterministic 100ms-sliced simulation of the 300-turn/sec (480 LLM RPS)
-    workload across 500 tenants and 8 Anthropic workspaces, measuring per-workspace RPM/ITPM/OTPM,
+    workload across 500 tenants and 8 GPT 6 Luna workspaces, measuring per-workspace RPM/ITPM/OTPM,
     PgBouncer queue wait metrics, and token costs.
     """
     limiter = ShardedWorkspaceLimiter(num_workspaces=8)
@@ -934,7 +934,7 @@ def run_gate4_300_tps_benchmark(
     p99_lat_idx = min(len(sorted_turn_lat) - 1, int(len(sorted_turn_lat) * 0.99))
 
     # Daily cost math at 2,000,000 turns/day (3.2M LLM calls/day) with 85%+ prompt cache hit rate
-    # Sonnet-class pricing ($3/MTok uncached input, $0.30/MTok cache read, $15/MTok output)
+    # GPT 6 Luna pricing ($3/MTok uncached input, $0.30/MTok cache read, $15/MTok output)
     daily_calls = 2_000_000 * avg_steps_per_turn
     daily_uncached_mtok = (daily_calls * uncached_input_tokens_per_call) / 1_000_000.0
     daily_cached_mtok = (daily_calls * cached_prefix_tokens) / 1_000_000.0

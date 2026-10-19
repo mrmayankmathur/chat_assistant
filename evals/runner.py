@@ -21,7 +21,7 @@ from app.models import (
     Tonality,
 )
 from app.settings import Settings
-from evals.agent_simulator import LocalEvalAnthropicClient
+from evals.agent_simulator import LiveGpt6LunaClient, LocalEvalAnthropicClient
 from evals.assertions import evaluate_deterministic_assertions, evaluate_judge_rubric
 from evals.schemas import (
     ScenarioEvalResult,
@@ -62,7 +62,7 @@ SCENARIO_ORDER: tuple[str, ...] = (
 EVAL_SETTINGS = Settings(
     phone_hmac_secret="eval-secret-key-123",
     default_phone_region="IN",
-    llm_model="claude-opus-5-5",
+    llm_model="gpt-6-luna",
 )
 
 
@@ -141,12 +141,14 @@ def _build_default_business_hours(tenant_id: int, bh_spec: dict[str, Any] | None
 
 
 def _create_default_anthropic_client() -> Any:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    use_live = os.environ.get("WISMO_EVAL_LIVE", "").strip().lower() in ("1", "true", "yes")
-    if api_key and use_live:
-        from anthropic import AsyncAnthropic
-
-        return AsyncAnthropic(api_key=api_key)
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+    use_live = os.getenv("WISMO_LIVE_LLM", "").strip().lower() in ("1", "true", "yes")
+    in_pytest = bool(os.getenv("PYTEST_CURRENT_TEST"))
+    if openai_key and use_live and not in_pytest:
+        return LiveGpt6LunaClient(
+            api_key=openai_key,
+            base_url=EVAL_SETTINGS.openai_base_url,
+        )
     return LocalEvalAnthropicClient()
 
 

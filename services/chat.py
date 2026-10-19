@@ -258,7 +258,7 @@ class ChatService:
 
         for step in range(1, MAX_TURN_STEPS + 1):
             create_kwargs: dict[str, Any] = {
-                "model": self.settings.llm_model,
+                "model": "gpt-6-luna",
                 "max_tokens": MAX_TOKENS,
                 "system": system_blocks,
                 "messages": list(messages),
@@ -281,7 +281,7 @@ class ChatService:
             llm_calls.append(
                 LlmCallRecord(
                     step=step,
-                    model=getattr(response, "model", None) or self.settings.llm_model,
+                    model="gpt-6-luna",
                     stop_reason=stop_reason,
                     input_tokens=_extract_usage_int(usage, "input_tokens"),
                     output_tokens=_extract_usage_int(usage, "output_tokens"),

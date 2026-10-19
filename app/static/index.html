@@ -1,0 +1,3673 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <meta
+      name="color-scheme"
+      content="light"
+    />
+    <title>Lumina Botanics · WISMO Support Assistant</title>
+    <style>
+      :root {
+        --canvas: #f6f6f0;
+        --paper: #fff;
+        --cream: #f6f5ef;
+        --ink: #132822;
+        --muted: #6d7775;
+        --line: #e4e7df;
+        --green: #004b3b;
+        --green-dark: #00372c;
+        --mint: #e4f8ee;
+        --blue: #0865db;
+        --purple: #702bdf;
+        --red: #b4133b;
+        --shadow: 0 4px 18px #223d2b08, 0 1px 3px #223d2b05;
+        --sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.46;
+        cursor: not-allowed;
+      }
+      button,
+      input,
+      select {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid #59a68d;
+        outline-offset: 3px;
+      }
+      button {
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      button:hover:not(:disabled) {
+        filter: brightness(0.97);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      svg {
+        flex-shrink: 0;
+      }
+      .icon {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: middle;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        clip: rect(0, 0, 0, 0);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      .svg-library {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-thumb {
+        border-radius: 8px;
+        background: #c9d0c6;
+      }
+
+      /* Brand, floating command bar and primary navigation. */
+      .unified-header {
+        display: grid;
+        grid-template-columns: 365px minmax(0, 1fr) 112px;
+        grid-template-rows: auto auto;
+        column-gap: 18px;
+        align-items: center;
+        padding: 0 22px 9px 30px;
+        flex-shrink: 0;
+        min-height: 92px;
+        background: #fcfbf7;
+        border-bottom: 1px solid #eff0e8;
+      }
+      .brand-lockup {
+        grid-row: 1 / 3;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+      }
+      .brand-mark {
+        width: 54px;
+        height: 58px;
+      }
+      .brand-title {
+        display: block;
+        font: 700 29px/1.12 var(--serif);
+        letter-spacing: -0.7px;
+        color: #0b231c;
+      }
+      .brand-subtitle {
+        display: block;
+        font-size: 9px;
+        letter-spacing: 1.75px;
+        margin-top: 7px;
+        color: #6b716b;
+        white-space: nowrap;
+      }
+      .command-pill-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 7px;
+        min-width: 0;
+        min-height: 37px;
+        padding: 7px 10px 7px 14px;
+        color: #edf8f4;
+        background: linear-gradient(110deg, #042f27, #0b1722);
+        border-radius: 0 0 17px 17px;
+        box-shadow: 0 4px 10px #05392b12;
+      }
+      .command-name {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #91a39c;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .status-dot.ready {
+        background: #12be77;
+        box-shadow: 0 0 0 4px #12be7715;
+      }
+      .command-tag,
+      .cmd-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border: 1px solid #b2e7d41c;
+        border-radius: 20px;
+        padding: 4px 8px;
+        font-size: 10px;
+        line-height: 1;
+        white-space: nowrap;
+        color: #deeee8;
+        background: #c2ffdf0c;
+      }
+      .command-tag {
+        font-family: var(--mono);
+      }
+      .command-tag strong {
+        font-weight: 500;
+      }
+      .cmd-btn .icon {
+        width: 12px;
+        height: 12px;
+      }
+      .cmd-btn[aria-expanded="true"] {
+        background: #1b6451;
+      }
+      .header-nav-tabs {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 10px 0 0 34px;
+      }
+      .nav-tab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #283733;
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 9px 21px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .nav-tab.active {
+        background: linear-gradient(135deg, #064a3b, #003b2f);
+        box-shadow: inset 0 0 0 1px #37725e;
+        color: white;
+      }
+      .nav-tab + .nav-tab {
+        position: relative;
+      }
+      .nav-tab + .nav-tab::before {
+        content: "";
+        position: absolute;
+        left: -4px;
+        height: 13px;
+        border-left: 1px solid var(--line);
+      }
+      .persona-pill {
+        grid-column: 3;
+        grid-row: 1 / 3;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .persona-avatar {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        color: #fff;
+        background: #3e705b;
+        font: 18px var(--serif);
+        flex-shrink: 0;
+      }
+      .persona-select {
+        max-width: 72px;
+        border: 0;
+        background: transparent;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink);
+        padding: 0;
+      }
+      .persona-caption {
+        font-size: 10px;
+        color: var(--muted);
+        display: block;
+        margin-top: 4px;
+        white-space: nowrap;
+      }
+
+      /* The orders portal and concierge keep independent desktop scroll areas. */
+      .main-stage {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(390px, 31.5vw, 550px);
+        gap: 16px;
+        padding: 4px 14px 10px;
+      }
+      .storefront-pane {
+        min-width: 0;
+        overflow-y: auto;
+        container-type: inline-size;
+        padding-bottom: 14px;
+      }
+      .portal-heading {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        border-radius: 12px;
+        background: linear-gradient(105deg, #f0f2e9, #efefe5 65%, #d9e1cb);
+        margin-bottom: 8px;
+      }
+      .hero-foliage {
+        position: absolute;
+        width: 390px;
+        height: 260px;
+        right: -60px;
+        top: -44px;
+        z-index: -1;
+        opacity: 0.63;
+        pointer-events: none;
+      }
+      .botanical-hero-banner {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 21px 22px 9px;
+      }
+      .botanical-hero-left {
+        display: flex;
+        gap: 16px;
+        min-width: 0;
+      }
+      .hero-leaf-circle {
+        width: 69px;
+        height: 69px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        background: #e8ece4c9;
+        border: 1px solid #dfe5d9;
+        border-radius: 50%;
+      }
+      .hero-leaf-circle svg {
+        width: 36px;
+        height: 42px;
+      }
+      h1 {
+        margin: 0;
+        font: 700 clamp(23px, 1.9vw, 32px)/1.22 var(--serif);
+        letter-spacing: -0.7px;
+      }
+      .botanical-hero-sub {
+        margin: 5px 0 0;
+        color: #64746e;
+        font-size: 13px;
+        line-height: 1.6;
+        max-width: 660px;
+      }
+      .store-btn {
+        border: 1px solid #d9ddd2;
+        border-radius: 10px;
+        padding: 12px 17px;
+        color: #142924;
+        background: #f8f8f3;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+      .store-btn.primary {
+        color: #fff;
+        background: linear-gradient(135deg, #075140, #003e32);
+        border-color: #306958;
+        box-shadow:
+          0 3px 8px #00463412,
+          inset 0 0 0 1px #ffffff10;
+      }
+      .store-btn.cancel-btn {
+        color: var(--red);
+        background: #fff0f1;
+        border-color: #f1bbc4;
+      }
+      .cta-instant-order-btn {
+        margin-top: 6px;
+        box-shadow:
+          0 0 0 2px #ffffffd6,
+          0 3px 10px #223d2b12 !important;
+      }
+      .filter-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 22px 8px;
+        flex-wrap: wrap;
+      }
+      .filter-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .filter-pill {
+        border: 1px solid #fff9;
+        background: #fafbf7e8;
+        color: #233f34;
+        border-radius: 25px;
+        padding: 11px 15px;
+        font-size: 11px;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 3px 9px #1c3a2b05;
+      }
+      .filter-pill.active {
+        color: #fff;
+        background: #073f32;
+        border-color: #073f32;
+      }
+      .filter-pill .icon {
+        width: 13px;
+        height: 13px;
+        margin-right: 4px;
+      }
+      .search-box-wrap {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: #fff;
+        border: 1px solid #f1f0e8;
+        border-radius: 10px;
+        padding: 10px 11px;
+        flex: 1;
+        max-width: 290px;
+        min-width: 210px;
+        box-shadow: var(--shadow);
+      }
+      .search-box-wrap .icon {
+        color: #7f8983;
+        width: 16px;
+        height: 16px;
+      }
+      .search-box-wrap input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        font-size: 12px;
+        color: var(--ink);
+        outline: none;
+      }
+      .search-box-wrap:focus-within {
+        box-shadow: 0 0 0 2px #4d8a73;
+      }
+      kbd {
+        font: 10px var(--mono);
+        color: #737d77;
+        border: 1px solid #e6e8e1;
+        padding: 2px 4px;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+      .sandbox-caption {
+        margin: 0;
+        padding: 0 23px 3px;
+        color: #5b7063;
+        font-size: 10px;
+        line-height: 1.2;
+      }
+      .orders-portal-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 0 16px;
+      }
+      .portal-order-card {
+        background: #ffffffed;
+        border: 1px solid #fff;
+        border-radius: 15px;
+        box-shadow: var(--shadow);
+        padding: 16px;
+        min-width: 0;
+      }
+      .order-top-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+      }
+      .product-thumb-art {
+        width: 96px;
+        height: 96px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 13px;
+        background: #f2f1ea;
+      }
+      .product-thumb-art svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .order-info {
+        min-width: 0;
+        flex: 1;
+        padding-top: 3px;
+      }
+      .order-heading-line {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .order-meta-top {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .order-ref-pill,
+      .payment-pill,
+      .price-pill,
+      .breach-pill {
+        display: inline-block;
+        border-radius: 6px;
+        padding: 5px 9px;
+        font: 12px var(--mono);
+      }
+      .order-ref-pill {
+        background: linear-gradient(100deg, #efe8d8, #f7f2e7);
+        color: #353b2b;
+      }
+      .payment-pill {
+        background: #edf3fa;
+        color: #3c536d;
+      }
+      .price-pill {
+        background: #f1f3f6;
+        color: #384a59;
+      }
+      .breach-pill {
+        background: #ffe6eb;
+        color: #af0f38;
+        font: 500 11px var(--sans);
+        border: 1px solid #f8d9df;
+      }
+      .order-item-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.4px;
+        line-height: 1.25;
+        margin: 9px 0 7px;
+        color: #101b1a;
+      }
+      .order-subline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px 15px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #7b827f;
+      }
+      .order-subline strong {
+        color: #434b48;
+        font-weight: 500;
+      }
+      .order-subline code {
+        color: #4a524d;
+        background: #f3f3ed;
+        padding: 3px 7px;
+        border-radius: 4px;
+        font-family: var(--mono);
+        overflow-wrap: anywhere;
+      }
+      .order-status-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+      .order-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 13px;
+        border-radius: 24px;
+        border: 1px solid #e1e6df;
+        background: #f3f5f1;
+        color: #57645c;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+      .order-status-pill::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .ORDER_PLACED,
+      .MANIFESTED,
+      .DELIVERED {
+        color: #16734f;
+        background: #e8faf0;
+        border-color: #d6f2e2;
+      }
+      .IN_TRANSIT {
+        color: #005bd1;
+        background: #e7f1ff;
+        border-color: #c9dcfa;
+      }
+      .OUT_FOR_DELIVERY {
+        color: #6223d0;
+        background: #f0e8ff;
+        border-color: #e6dcf8;
+      }
+      .FAILED_DELIVERY,
+      .PICKUP_FAILED {
+        color: #985616;
+        background: #fff4d7;
+        border-color: #efdfac;
+      }
+      .CANCELLED {
+        color: #ae2342;
+        background: #fce9ee;
+        border-color: #f4d5de;
+      }
+      .order-expand {
+        display: grid;
+        place-items: center;
+        background: none;
+        border: 0;
+        color: #63716c;
+        padding: 3px;
+        border-radius: 5px;
+      }
+      .order-expand[aria-expanded="true"] .icon {
+        transform: rotate(90deg);
+      }
+      .connected-stepper {
+        display: flex;
+        align-items: center;
+        width: 85%;
+        min-height: 37px;
+        padding: 5px 8px;
+        margin: 3px 0 10px;
+      }
+      .stepper-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: #8d9496;
+        white-space: nowrap;
+      }
+      .stepper-dot {
+        width: 13px;
+        height: 13px;
+        background: #dfe2e7;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .stepper-item.done {
+        color: #17583f;
+      }
+      .stepper-item.done .stepper-dot {
+        background: #48b589;
+      }
+      .stepper-item.current {
+        color: #112d43;
+      }
+      .stepper-item.current .stepper-dot {
+        background: var(--blue);
+        box-shadow: 0 0 0 3px #e7f0ff;
+      }
+      .stepper-item.purple .stepper-dot {
+        background: var(--purple);
+        box-shadow: 0 0 0 3px #f0e8ff;
+      }
+      .stepper-item.alert {
+        color: #a65d13;
+      }
+      .stepper-item.alert .stepper-dot {
+        background: #d69a27;
+      }
+      .stepper-item.cancelled {
+        color: var(--red);
+      }
+      .stepper-item.cancelled .stepper-dot {
+        background: #c14060;
+      }
+      .stepper-line {
+        height: 2px;
+        background: #dfe3e4;
+        flex: 1;
+        min-width: 12px;
+        margin: 0 9px;
+      }
+      .stepper-line.done {
+        background: #53b58f;
+      }
+      .stepper-line.blue {
+        background: linear-gradient(90deg, #50b98a, var(--blue));
+      }
+      .stepper-line.purple {
+        background: linear-gradient(90deg, #ac91eb, var(--purple));
+      }
+      .stepper-line.alert {
+        background: #d4ad60;
+      }
+      .stepper-line.cancelled {
+        background: #cc758a;
+      }
+      .order-footer-row {
+        display: flex;
+        align-items: stretch;
+        gap: 14px;
+      }
+      .carrier-scan-note {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        border: 1px solid #ebece3;
+        border-radius: 9px;
+        background: #f6f6ef;
+        padding: 7px 10px;
+        color: #7a817d;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .carrier-scan-note > .icon {
+        width: 14px;
+        height: 14px;
+        margin-top: 3px;
+        color: #dd4f58;
+      }
+      .scan-content {
+        min-width: 0;
+        flex: 1;
+      }
+      .scan-left-text {
+        overflow-wrap: anywhere;
+      }
+      .scan-left-text strong {
+        color: #26312c;
+        font-weight: 600;
+      }
+      .scan-timestamp {
+        display: block;
+        text-align: right;
+        font-size: 9px;
+        color: #62706a;
+        margin-top: 2px;
+        font-family: var(--mono);
+      }
+      .order-action-btns {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .order-action-btns .store-btn {
+        min-height: 43px;
+      }
+      .order-details {
+        border-top: 1px solid var(--line);
+        margin-top: 14px;
+        padding-top: 14px;
+      }
+      .order-details dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        margin: 0;
+        gap: 8px 16px;
+        font-size: 12px;
+      }
+      .order-details dt {
+        color: var(--muted);
+      }
+      .order-details dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .foreign-order {
+        border: 1px dashed #a2b0a4;
+        background: #f6f9f4;
+      }
+      .foreign-note {
+        color: #6a786e;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .empty-orders {
+        padding: 36px 20px;
+        text-align: center;
+        color: var(--muted);
+        border-radius: 14px;
+        border: 1px dashed #cfd8cc;
+      }
+      .catalog-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        padding: 24px 18px;
+      }
+      h2 {
+        font: 700 27px var(--serif);
+        margin: 0 0 8px;
+      }
+      .catalog-heading p {
+        color: var(--muted);
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .catalog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        padding: 0 16px;
+      }
+      .product-card {
+        padding: 20px;
+        border-radius: 15px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .product-visual-box {
+        border-radius: 10px;
+        background: #f5f4ee;
+        text-align: center;
+      }
+      .product-visual-box svg {
+        width: 150px;
+        height: 150px;
+      }
+      .product-card h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .product-card p {
+        color: var(--muted);
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .product-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: auto;
+        gap: 10px;
+      }
+
+      /* WhatsApp-style presentation; channel transport remains the sandbox API. */
+      .chat-dock {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        border: 1px solid #e0e7dd;
+        border-radius: 13px;
+        overflow: hidden;
+        background: #eeefe5;
+        box-shadow: var(--shadow);
+      }
+      .chat-widget-header {
+        flex-shrink: 0;
+        min-height: 79px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 16px;
+        background: linear-gradient(115deg, #004d3c, #002f25);
+        color: #fff;
+      }
+      .chat-agent-profile {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+      .agent-avatar {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1px solid #6f9d86;
+        background: linear-gradient(135deg, #3b775c, #14543e);
+        font: 22px var(--serif);
+        flex-shrink: 0;
+      }
+      .agent-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .agent-title-row h2 {
+        font: 600 16px var(--sans);
+        margin: 0;
+        white-space: nowrap;
+      }
+      .agent-subline {
+        font-size: 10px;
+        color: #c1d9ce;
+        margin-top: 6px;
+        line-height: 1.4;
+      }
+      .channel-pill-switch {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .channel-pill-switch button {
+        border: 1px solid #5d7a6f;
+        background: #002b23;
+        color: #fff;
+        padding: 11px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        white-space: nowrap;
+        box-shadow: inset 0 0 4px #ffffff12;
+      }
+      .channel-pill-switch button.active {
+        background: #f8fff9;
+        color: #163c2f;
+        border-color: #c7e1d2;
+      }
+      .demo-scenarios-bar {
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: #fcfcfc;
+        border: 1px solid #ebece7;
+        padding: 17px 16px;
+        position: relative;
+        z-index: 1;
+      }
+      .demo-scenarios-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        color: #275b4f;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      .demo-scenarios-label span:last-child {
+        color: #777e7a;
+        font-weight: 400;
+      }
+      .scenario-chips-scroll {
+        display: flex;
+        gap: 7px 6px;
+        flex-wrap: wrap;
+      }
+      .scenario-chip {
+        border: 1px solid #e0e3e0;
+        border-radius: 24px;
+        padding: 6px 13px;
+        font-size: 11px;
+        color: #1f2925;
+        background: #fafbfa;
+        white-space: nowrap;
+      }
+      .chat-stream {
+        position: relative;
+        flex: 1;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        overflow-y: auto;
+        padding: 18px 18px 24px;
+        background-color: #efefe5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='150' viewBox='0 0 140 150'%3E%3Cg fill='none' stroke='%2396a38b' stroke-opacity='.12' stroke-width='.8'%3E%3Cpath d='M15 58q0-28 24-30-1 27-24 30zm0 0 15-21M87 34q0-25 22-29-1 24-22 29zm0 0 15-20M43 128q-15-20-1-37 17 21 1 37zm0 0-1-27M108 123q1-27 24-31-2 28-24 31zm0 0 14-21M78 73l16 12-9 22-18-8zM81 76l-7 18 10 5 6-13zM15 80q-5-10-10-4-5 7 10 14 15-7 9-14-5-6-9 4M60 15l5 8-6 7-7-8z'/%3E%3Ccircle cx='116' cy='61' r='8'/%3E%3Cpath d='M112 58h1m6 0h1m-8 5q4 4 8 0M38 64l3-4 3 4-3 5z'/%3E%3C/g%3E%3C/svg%3E");
+      }
+      .chat-dock.web-mode .chat-stream {
+        background-color: #f1f5f3;
+      }
+      .conversation-note {
+        align-self: center;
+        max-width: 95%;
+        margin: 0 0 4px;
+        font-size: 10px;
+        text-align: center;
+        line-height: 1.6;
+        color: #65765f;
+        background: #fffff7b3;
+        border: 1px solid #e6e7d7;
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+      .empty-chat {
+        margin: auto 10px;
+        text-align: center;
+        color: #546b5b;
+        padding: 22px 12px;
+      }
+      .empty-chat .empty-avatar {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 18px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1px solid #c7d3c2;
+        background: #f8faf2bf;
+        font: 26px var(--serif);
+        color: #315b43;
+      }
+      .empty-chat h3 {
+        margin: 0 0 9px;
+        font: 22px var(--serif);
+      }
+      .empty-chat p {
+        margin: 0 auto;
+        max-width: 270px;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      .msg-row {
+        flex-shrink: 0;
+        max-width: 91%;
+      }
+      .msg-row.user {
+        align-self: flex-end;
+        max-width: 83%;
+      }
+      .msg-row.assistant {
+        align-self: flex-start;
+      }
+      .assistant-row-inner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .msg-bot-avatar {
+        display: grid;
+        place-items: center;
+        width: 29px;
+        height: 29px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: #07543e;
+        color: #fff;
+        font: 12px var(--serif);
+      }
+      .assistant-bubble-col {
+        min-width: 0;
+      }
+      .msg-sender-label {
+        color: #687670;
+        font-size: 10px;
+        margin-bottom: 4px;
+        line-height: 1.5;
+      }
+      .msg-bubble {
+        background: #fff;
+        border-radius: 0 13px 13px 13px;
+        padding: 11px 15px 8px;
+        color: #19221e;
+        font-size: 14px;
+        line-height: 1.6;
+        box-shadow: 0 2px 7px #233b2706;
+        overflow-wrap: anywhere;
+      }
+      .msg-text {
+        white-space: pre-wrap;
+      }
+      .user .msg-bubble {
+        background: #e0ffc9;
+        border-radius: 12px 0 12px 12px;
+      }
+      .web-mode .user .msg-bubble {
+        background: #d8ece1;
+      }
+      .msg-time {
+        display: block;
+        text-align: right;
+        color: #7b8c78;
+        font: 10px var(--mono);
+        margin-top: 5px;
+      }
+      .reply-flags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .flag-pill {
+        padding: 5px 8px;
+        border-radius: 5px;
+        background: #eef5fa;
+        color: #345268;
+        font: 10px var(--mono);
+      }
+      .flag-pill.escalate {
+        color: #793c23;
+        background: #fff3ba;
+      }
+      .handoff-note {
+        font-size: 10px;
+        color: #6e643a;
+        margin: 6px 0 0;
+        line-height: 1.5;
+      }
+      .chat-order-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-top: 10px;
+      }
+      .chat-order-card {
+        padding: 9px;
+        border: 1px solid #e3e9e1;
+        background: #f7faf4;
+        border-radius: 8px;
+        font-size: 11px;
+      }
+      .chat-order-card strong,
+      .chat-order-card span {
+        display: block;
+      }
+      .chat-order-btns {
+        display: flex;
+        gap: 5px;
+        margin-top: 7px;
+        flex-wrap: wrap;
+      }
+      .chat-mini-btn {
+        border: 1px solid #ccd9cd;
+        border-radius: 6px;
+        background: #fff;
+        color: #19583d;
+        font-size: 11px;
+        padding: 5px 10px;
+      }
+      .typing-dots {
+        display: inline-flex;
+        gap: 4px;
+        margin-right: 7px;
+      }
+      .typing-dots i {
+        width: 5px;
+        height: 5px;
+        background: #5a8a72;
+        border-radius: 50%;
+        animation: typing 1s infinite alternate;
+      }
+      .typing-dots i:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dots i:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes typing {
+        to {
+          opacity: 0.25;
+          transform: translateY(-3px);
+        }
+      }
+      .system-error {
+        align-self: stretch;
+        background: #fff2f2;
+        border: 1px solid #e8babc;
+        border-radius: 9px;
+        padding: 12px;
+        color: #a02a3b;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .chat-composer {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 12px;
+        background: #fbfbf7;
+        border-top: 1px solid #e7e8df;
+      }
+      .composer-input-wrap {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        padding: 7px 8px;
+        gap: 8px;
+        border: 1px solid #e5e9df;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 2px 6px #20391b05;
+      }
+      .composer-input-wrap:focus-within {
+        border-color: #75a58a;
+      }
+      .composer-input-wrap input {
+        border: 0;
+        outline: none;
+        min-width: 0;
+        flex: 1;
+        color: #20382b;
+        font-size: 13px;
+        height: 31px;
+      }
+      .composer-tool {
+        display: grid;
+        place-items: center;
+        background: transparent;
+        border: 0;
+        color: #677a6b;
+        width: 28px;
+        height: 30px;
+        border-radius: 5px;
+        padding: 0;
+      }
+      .composer-tool .icon {
+        width: 21px;
+        height: 21px;
+      }
+      .chat-send-btn {
+        display: grid;
+        place-items: center;
+        border: 1px solid #28654c;
+        border-radius: 50%;
+        width: 47px;
+        height: 47px;
+        color: #fff;
+        background: linear-gradient(130deg, #005440, #003b2e);
+        flex-shrink: 0;
+      }
+      .chat-send-btn .icon {
+        width: 22px;
+        height: 22px;
+      }
+      .reference-picker {
+        padding: 10px 14px;
+        max-height: 190px;
+        overflow-y: auto;
+        background: #f9fbf5;
+        border-top: 1px solid var(--line);
+      }
+      .reference-picker p {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 0 0 7px;
+      }
+      .reference-picker button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-radius: 5px;
+        padding: 8px;
+        color: var(--ink);
+        background: transparent;
+        font-size: 12px;
+      }
+      .reference-picker button:hover {
+        background: #e7f1e5;
+      }
+      .notice-bar {
+        margin: 0 14px 6px;
+        padding: 10px 13px;
+        border-radius: 8px;
+        background: #fff3e4;
+        color: #7d4a1e;
+        font-size: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .notice-bar button {
+        background: transparent;
+        color: inherit;
+        border: 1px solid #d2b99c;
+        border-radius: 5px;
+        padding: 3px 8px;
+      }
+
+      /* An overlay inspector avoids crushing the reference's two-column layout. */
+      .inspector {
+        position: fixed;
+        inset: 0 0 0 auto;
+        margin: 0;
+        width: 430px;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border: 0;
+        padding: 24px;
+        background: #f7faf4;
+        color: var(--ink);
+        box-shadow: -10px 0 50px #10251a26;
+        overflow-y: auto;
+      }
+      .inspector::backdrop {
+        background: #0e261b42;
+      }
+      .inspector-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+      .icon-btn {
+        border: 1px solid #d8e2d3;
+        border-radius: 7px;
+        padding: 6px;
+        background: #fff;
+        color: #355342;
+      }
+      .xray-box {
+        padding: 18px;
+        border: 1px solid #dfe8db;
+        background: #fff;
+        border-radius: 12px;
+        margin: 14px 0;
+      }
+      .xray-box h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+      .xray-box p {
+        color: #6a7a6c;
+        font-size: 12px;
+        line-height: 1.65;
+      }
+      .xray-metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .xray-metric {
+        padding: 12px;
+        border-radius: 8px;
+        background: #f2f6ee;
+      }
+      .xray-metric strong {
+        display: block;
+        font: 20px var(--mono);
+      }
+      .xray-metric span {
+        display: block;
+        margin-top: 5px;
+        font-size: 10px;
+        color: #677965;
+      }
+      .guardrails-list {
+        padding-left: 17px;
+        color: #4f6454;
+        font-size: 12px;
+        line-height: 1.8;
+      }
+      .trace-card {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 0;
+        font-size: 11px;
+      }
+      .trace-card summary {
+        cursor: pointer;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+      }
+      .trace-pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #f4f7ef;
+        padding: 12px;
+        border-radius: 6px;
+        font: 10px/1.7 var(--mono);
+      }
+      @container (max-width: 950px) {
+        .botanical-hero-banner {
+          flex-wrap: wrap;
+          padding: 22px 18px 16px;
+        }
+        .cta-instant-order-btn {
+          margin: 0 0 0 85px;
+        }
+        .hero-leaf-circle {
+          width: 60px;
+          height: 60px;
+        }
+        .connected-stepper {
+          width: 100%;
+        }
+        .order-footer-row {
+          flex-wrap: wrap;
+        }
+        .carrier-scan-note {
+          flex-basis: 100%;
+        }
+        .order-action-btns {
+          margin-left: auto;
+        }
+        .order-status-right {
+          gap: 5px;
+        }
+        .order-status-pill {
+          font-size: 10px;
+          padding: 7px 9px;
+        }
+        .order-heading-line {
+          flex-wrap: wrap;
+        }
+        .filter-toolbar {
+          padding: 0 18px 12px;
+        }
+        .search-box-wrap {
+          max-width: none;
+        }
+      }
+      @container (max-width: 600px) {
+        .product-thumb-art {
+          width: 72px;
+          height: 80px;
+        }
+        .order-top-row {
+          gap: 12px;
+        }
+        .order-item-title {
+          font-size: 16px;
+        }
+        .orders-portal-grid {
+          padding: 0 4px;
+        }
+        .portal-order-card {
+          padding: 14px;
+        }
+        .order-ref-pill,
+        .payment-pill,
+        .price-pill {
+          font-size: 10px;
+          padding: 4px 6px;
+        }
+        .connected-stepper {
+          margin-top: 16px;
+          align-items: flex-start;
+        }
+        .stepper-item {
+          flex: 1;
+          flex-direction: column;
+          gap: 7px;
+          font-size: 9px;
+          text-align: center;
+          white-space: normal;
+        }
+        .stepper-line {
+          flex: 0.5;
+          margin: 6px -5px 0;
+        }
+        .order-action-btns {
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+        .order-action-btns .store-btn {
+          font-size: 11px;
+          padding: 10px 12px;
+        }
+        .botanical-hero-title {
+          font-size: 24px;
+        }
+        .hero-leaf-circle {
+          width: 46px;
+          height: 46px;
+        }
+        .hero-leaf-circle svg {
+          width: 25px;
+          height: 32px;
+        }
+        .botanical-hero-left {
+          gap: 12px;
+        }
+        .cta-instant-order-btn {
+          margin-left: 58px;
+        }
+        .botanical-hero-sub {
+          font-size: 12px;
+        }
+        .order-subline {
+          font-size: 11px;
+          gap: 5px 10px;
+        }
+        .filter-pills {
+          gap: 6px;
+        }
+        .filter-pill {
+          padding: 9px 11px;
+          font-size: 10px;
+        }
+      }
+      @media (max-width: 1450px) {
+        .unified-header {
+          grid-template-columns: 300px minmax(0, 1fr) 105px;
+          gap: 12px;
+          padding-left: 22px;
+        }
+        .brand-title {
+          font-size: 25px;
+        }
+        .brand-subtitle {
+          font-size: 8px;
+          letter-spacing: 1.2px;
+        }
+        .brand-mark {
+          width: 45px;
+          height: 50px;
+        }
+        .brand-lockup {
+          gap: 11px;
+        }
+        .command-pill-bar {
+          flex-wrap: wrap;
+          justify-content: flex-start;
+          gap: 5px;
+        }
+        .header-nav-tabs {
+          padding-left: 0;
+        }
+        .chat-widget-header {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .channel-pill-switch {
+          margin-left: auto;
+        }
+        .agent-avatar {
+          width: 40px;
+          height: 40px;
+          font-size: 18px;
+        }
+        .demo-scenarios-label {
+          font-size: 9px;
+        }
+        .scenario-chip {
+          font-size: 10px;
+          padding: 6px 9px;
+        }
+      }
+      @media (max-width: 1100px) {
+        .unified-header {
+          grid-template-columns: 1fr auto;
+          gap: 9px;
+          padding: 0 18px 10px;
+        }
+        .command-pill-bar {
+          grid-row: 1;
+          grid-column: 1 / -1;
+          border-radius: 0 0 12px 12px;
+          justify-content: center;
+        }
+        .brand-lockup {
+          grid-row: 2;
+          grid-column: 1;
+        }
+        .persona-pill {
+          grid-row: 2;
+          grid-column: 2;
+        }
+        .header-nav-tabs {
+          grid-row: 3;
+          grid-column: 1 / -1;
+          padding: 0;
+          justify-content: center;
+        }
+        .main-stage {
+          grid-template-columns: minmax(0, 1fr) 365px;
+          gap: 10px;
+          padding: 4px 10px 10px;
+        }
+      }
+      @media (max-width: 800px) {
+        body {
+          height: auto;
+          min-height: 100dvh;
+          overflow: auto;
+        }
+        .unified-header {
+          padding: 0 16px 10px;
+        }
+        .command-pill-bar {
+          justify-content: flex-start;
+          border-radius: 0 0 12px 12px;
+          padding: 9px;
+          gap: 7px;
+        }
+        .command-name {
+          font-size: 10px;
+        }
+        .command-tag,
+        .cmd-btn {
+          font-size: 9px;
+        }
+        .command-tag.tenant-tag {
+          display: none;
+        }
+        .header-nav-tabs {
+          flex-wrap: wrap;
+          gap: 4px;
+          justify-content: flex-start;
+        }
+        .nav-tab {
+          padding: 9px 11px;
+          font-size: 11px;
+          gap: 7px;
+        }
+        .nav-tab .icon {
+          width: 15px;
+          height: 15px;
+        }
+        .brand-title {
+          font-size: 23px;
+        }
+        .brand-subtitle {
+          font-size: 7px;
+          letter-spacing: 1px;
+        }
+        .brand-mark {
+          width: 34px;
+          height: 42px;
+        }
+        .persona-avatar {
+          width: 29px;
+          height: 29px;
+        }
+        .main-stage {
+          display: flex;
+          flex-direction: column;
+          padding: 8px 16px 16px;
+          gap: 20px;
+          overflow: visible;
+        }
+        .storefront-pane {
+          overflow: visible;
+        }
+        .chat-dock {
+          height: 760px;
+          height: min(820px, 92dvh);
+          min-height: 540px;
+          scroll-margin-top: 10px;
+        }
+        .chat-widget-header {
+          flex-wrap: nowrap;
+        }
+        .agent-title-row h2 {
+          font-size: 14px;
+        }
+        .agent-subline {
+          font-size: 9px;
+        }
+        .chat-agent-profile {
+          gap: 9px;
+        }
+        .channel-pill-switch button {
+          padding: 9px 7px;
+          font-size: 10px;
+        }
+        .demo-scenarios-label {
+          font-size: 9px;
+        }
+        .chat-stream {
+          padding: 16px 12px;
+        }
+        .msg-bubble {
+          font-size: 13px;
+        }
+        .assistant-row-inner {
+          gap: 8px;
+        }
+        .msg-row {
+          max-width: 96%;
+        }
+        .inspector {
+          padding: 18px;
+        }
+        .catalog-heading {
+          flex-wrap: wrap;
+        }
+      }
+      @media (max-width: 480px) {
+        .brand-lockup > div {
+          min-width: 0;
+        }
+        .brand-title {
+          font-size: 21px;
+        }
+        .brand-subtitle {
+          white-space: normal;
+          font-size: 6.5px;
+          line-height: 1.5;
+        }
+        .hero-foliage {
+          opacity: 0.3;
+        }
+      }
+      @media (max-width: 370px) {
+        .chat-widget-header {
+          flex-wrap: wrap;
+        }
+        .channel-pill-switch {
+          margin-left: 49px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Shared vector illustrations are decorative, not product photography. -->
+    <svg
+      class="svg-library"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient
+          id="leaf-tone"
+          x2="1"
+          y2="1"
+        >
+          <stop stop-color="#74a37b" />
+          <stop
+            offset=".5"
+            stop-color="#285f45"
+          />
+          <stop
+            offset="1"
+            stop-color="#133a2b"
+          />
+        </linearGradient>
+        <linearGradient id="amber-glass">
+          <stop stop-color="#4d2410" />
+          <stop
+            offset=".25"
+            stop-color="#9a4b0c"
+          />
+          <stop
+            offset=".5"
+            stop-color="#ca790c"
+          />
+          <stop
+            offset=".75"
+            stop-color="#8b3906"
+          />
+          <stop
+            offset="1"
+            stop-color="#3d1b09"
+          />
+        </linearGradient>
+        <linearGradient id="aqua-glass">
+          <stop stop-color="#34778d" />
+          <stop
+            offset=".22"
+            stop-color="#86c8df"
+          />
+          <stop
+            offset=".6"
+            stop-color="#5eabc9"
+          />
+          <stop
+            offset="1"
+            stop-color="#1c627f"
+          />
+        </linearGradient>
+        <linearGradient id="ivory-glass">
+          <stop stop-color="#bcb9a2" />
+          <stop
+            offset=".25"
+            stop-color="#fdfbed"
+          />
+          <stop
+            offset=".65"
+            stop-color="#f3f0dd"
+          />
+          <stop
+            offset="1"
+            stop-color="#c9c6b1"
+          />
+        </linearGradient>
+        <linearGradient id="cap-tone">
+          <stop stop-color="#111b1b" />
+          <stop
+            offset=".4"
+            stop-color="#48524b"
+          />
+          <stop
+            offset=".6"
+            stop-color="#161d19"
+          />
+          <stop
+            offset="1"
+            stop-color="#060e0c"
+          />
+        </linearGradient>
+        <radialGradient id="serum-bg">
+          <stop stop-color="#fffffb" />
+          <stop
+            offset="1"
+            stop-color="#e5e7df"
+          />
+        </radialGradient>
+        <radialGradient id="cream-bg">
+          <stop stop-color="#f6fdff" />
+          <stop
+            offset="1"
+            stop-color="#dcecf0"
+          />
+        </radialGradient>
+        <symbol
+          id="leaf-mark"
+          viewBox="0 0 64 70"
+        >
+          <path
+            d="M31 64C7 63 1 47 3 22c21 2 32 18 28 42Z"
+            fill="url(#leaf-tone)"
+          />
+          <path
+            d="M33 37C27 13 45 6 60 4c-1 21-10 31-27 33Z"
+            fill="url(#leaf-tone)"
+          />
+          <path
+            d="M33 64c2-22 14-28 29-30-4 20-14 28-29 30Z"
+            fill="url(#leaf-tone)"
+          />
+          <path
+            d="M5 22C-1 1 24 4 31 22 21 17 15 14 5 22Z"
+            fill="#d2bd85"
+          />
+          <path
+            d="M31 65 8 29m24 35L55 41M32 62l1-25L55 11"
+            stroke="#f0f3d6"
+            stroke-opacity=".65"
+            stroke-width="1"
+            fill="none"
+          />
+        </symbol>
+        <symbol
+          id="sprig"
+          viewBox="0 0 120 160"
+        >
+          <path
+            d="M14 157C31 110 59 63 110 3"
+            stroke="#3a6234"
+            stroke-width="2"
+            fill="none"
+          />
+          <g fill="url(#leaf-tone)">
+            <path d="M30 122C0 106 3 80 7 61c25 11 37 33 23 61Z" />
+            <path d="M31 120c31-2 52-14 60-34-30-1-49 7-60 34Z" />
+            <path d="M54 81C29 66 31 41 36 22c24 10 33 34 18 59Z" />
+            <path d="M57 79c35-1 50-17 54-35-27-3-45 9-54 35Z" />
+            <path d="M80 44C63 24 72 6 80-9c18 15 16 32 0 53Z" />
+          </g>
+          <path
+            d="m9 69 21 52 53-30M38 30l16 51 48-31M80 0v43"
+            stroke="#c6d5a0"
+            stroke-width=".7"
+            fill="none"
+            opacity=".65"
+          />
+        </symbol>
+        <symbol
+          id="art-serum"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            width="120"
+            height="120"
+            fill="url(#serum-bg)"
+          />
+          <ellipse
+            cx="64"
+            cy="108"
+            rx="40"
+            ry="7"
+            fill="#6e765b"
+            opacity=".18"
+          />
+          <use
+            href="#sprig"
+            x="62"
+            y="39"
+            width="57"
+            height="75"
+          />
+          <path
+            d="M46 45q0-6 8-9h10q8 3 8 9v54q0 9-8 9H54q-8 0-8-9Z"
+            fill="url(#amber-glass)"
+            stroke="#593612"
+          />
+          <rect
+            x="51"
+            y="29"
+            width="16"
+            height="13"
+            rx="2"
+            fill="url(#cap-tone)"
+          />
+          <rect
+            x="54"
+            y="11"
+            width="10"
+            height="22"
+            rx="4"
+            fill="url(#cap-tone)"
+          />
+          <rect
+            x="48"
+            y="60"
+            width="22"
+            height="34"
+            rx="1"
+            fill="#d59b39"
+          />
+          <path
+            d="M50 44v14m0 39v4"
+            stroke="#ffdf9a"
+            opacity=".6"
+          />
+          <text
+            x="59"
+            y="71"
+            text-anchor="middle"
+            font-family="Georgia"
+            font-size="5"
+            fill="#44321a"
+          >
+            LUMINA
+          </text>
+          <text
+            x="59"
+            y="81"
+            text-anchor="middle"
+            font-family="Georgia"
+            font-size="4"
+            fill="#44321a"
+          >
+            VITAMIN C
+          </text>
+          <path
+            d="M52 86h14m-12 4h10"
+            stroke="#805221"
+            stroke-width=".6"
+          />
+          <circle
+            cx="30"
+            cy="96"
+            r="21"
+            fill="#df8f0c"
+            stroke="#f6c74f"
+            stroke-width="2"
+          />
+          <circle
+            cx="30"
+            cy="96"
+            r="17"
+            fill="#ffa921"
+            stroke="#fff1b4"
+            stroke-width="1.5"
+          />
+          <g
+            stroke="#fff2bc"
+            stroke-width="1"
+          >
+            <path d="M30 79v34m-17-17h34m-29-12 24 24m-24 0 24-24" />
+          </g>
+          <circle
+            cx="30"
+            cy="96"
+            r="2"
+            fill="#fff3bf"
+          />
+        </symbol>
+        <symbol
+          id="art-cream"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            width="120"
+            height="120"
+            fill="url(#cream-bg)"
+          />
+          <ellipse
+            cx="58"
+            cy="108"
+            rx="42"
+            ry="6"
+            fill="#477f8b"
+            opacity=".18"
+          />
+          <use
+            href="#sprig"
+            x="72"
+            y="61"
+            width="41"
+            height="52"
+          />
+          <rect
+            x="24"
+            y="55"
+            width="56"
+            height="48"
+            rx="8"
+            fill="url(#aqua-glass)"
+            stroke="#5a9db3"
+          />
+          <ellipse
+            cx="52"
+            cy="102"
+            rx="26"
+            ry="4"
+            fill="#438ba6"
+          />
+          <rect
+            x="22"
+            y="43"
+            width="60"
+            height="15"
+            rx="4"
+            fill="url(#aqua-glass)"
+          />
+          <ellipse
+            cx="52"
+            cy="43"
+            rx="30"
+            ry="5"
+            fill="#b3e3f1"
+            stroke="#77b8cd"
+          />
+          <path
+            d="M26 48h52m-51 4h50"
+            stroke="#d4edf3"
+            opacity=".7"
+          />
+          <rect
+            x="29"
+            y="69"
+            width="46"
+            height="22"
+            rx="2"
+            fill="#aad6e3"
+            opacity=".65"
+          />
+          <text
+            x="52"
+            y="78"
+            text-anchor="middle"
+            font-family="Georgia"
+            font-size="6"
+            fill="#286274"
+          >
+            LUMINA
+          </text>
+          <text
+            x="52"
+            y="85"
+            text-anchor="middle"
+            font-size="4"
+            fill="#286274"
+          >
+            HYDRA BARRIER
+          </text>
+          <path
+            d="M96 10C93 25 84 29 87 38c4 9 17 7 18-2 1-8-6-13-9-26Z"
+            fill="url(#aqua-glass)"
+            stroke="#579cb6"
+          />
+          <path
+            d="M93 27q-5 8-1 11"
+            stroke="#fff"
+            fill="none"
+          />
+          <path
+            d="M12 70C10 78 6 82 8 88c3 6 11 3 10-2-1-5-4-10-6-16Z"
+            fill="#92cee0"
+            stroke="#6babc0"
+          />
+        </symbol>
+        <symbol
+          id="art-cleanser"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            width="120"
+            height="120"
+            fill="#efeee4"
+          />
+          <ellipse
+            cx="59"
+            cy="109"
+            rx="36"
+            ry="6"
+            fill="#8b886b"
+            opacity=".15"
+          />
+          <use
+            href="#sprig"
+            x="72"
+            y="39"
+            width="41"
+            height="72"
+            opacity=".6"
+          />
+          <g
+            stroke="#bea66a"
+            fill="none"
+          >
+            <path d="M30 110 14 65m17 44L26 50m7 60L42 55" />
+            <path
+              d="m23 91-12-7m14 13-12-2m17-8 8-9m-10 1-9-8m10-6 5-8"
+              stroke-width="3"
+            />
+          </g>
+          <rect
+            x="43"
+            y="38"
+            width="29"
+            height="71"
+            rx="10"
+            fill="url(#ivory-glass)"
+            stroke="#c7c5b1"
+          />
+          <rect
+            x="49"
+            y="26"
+            width="17"
+            height="16"
+            rx="2"
+            fill="url(#cap-tone)"
+          />
+          <path
+            d="M54 28V15h21v5H61v8"
+            fill="url(#cap-tone)"
+          />
+          <rect
+            x="47"
+            y="59"
+            width="21"
+            height="29"
+            rx="2"
+            fill="#f7f3e5"
+          />
+          <text
+            x="58"
+            y="68"
+            text-anchor="middle"
+            font-family="Georgia"
+            font-size="5"
+            fill="#625c3e"
+          >
+            LUMINA
+          </text>
+          <text
+            x="58"
+            y="76"
+            text-anchor="middle"
+            font-size="4"
+            fill="#625c3e"
+          >
+            OAT MILK
+          </text>
+          <path
+            d="M52 81h11m-9 4h7"
+            stroke="#aaa184"
+            stroke-width=".6"
+          />
+        </symbol>
+        <symbol
+          id="art-botanical"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            width="120"
+            height="120"
+            fill="#eef0e6"
+          />
+          <use
+            href="#sprig"
+            x="16"
+            y="4"
+            width="90"
+            height="112"
+            opacity=".85"
+          />
+        </symbol>
+        <symbol
+          id="i-orders"
+          viewBox="0 0 24 24"
+        >
+          <path d="m3 7 2-3h14l2 3v4H3Zm2 4 1 10h12l1-10M9 4v4m6-4v4" />
+        </symbol>
+        <symbol
+          id="i-chat"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-5H3V6a2 2 0 0 1 2-2Z"
+          />
+        </symbol>
+        <symbol
+          id="i-chart"
+          viewBox="0 0 24 24"
+        >
+          <rect
+            x="3"
+            y="12"
+            width="4"
+            height="9"
+            rx="1"
+          />
+          <rect
+            x="10"
+            y="7"
+            width="4"
+            height="14"
+            rx="1"
+          />
+          <rect
+            x="17"
+            y="3"
+            width="4"
+            height="18"
+            rx="1"
+          />
+        </symbol>
+        <symbol
+          id="i-book"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M5 3h13a2 2 0 0 1 2 2v16H6a3 3 0 0 1-3-3V6a3 3 0 0 1 2-3Zm2 0v18M3 17h17m-9-9h5m-5 4h5"
+          />
+        </symbol>
+        <symbol
+          id="i-search"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            cx="10"
+            cy="10"
+            r="6.5"
+          />
+          <path d="m15 15 6 6" />
+        </symbol>
+        <symbol
+          id="i-lock"
+          viewBox="0 0 24 24"
+        >
+          <rect
+            x="5"
+            y="10"
+            width="14"
+            height="11"
+            rx="2"
+          />
+          <path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v2" />
+        </symbol>
+        <symbol
+          id="i-pin"
+          viewBox="0 0 24 24"
+        >
+          <path d="M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 1 1 14 0Z" />
+          <circle
+            cx="12"
+            cy="9"
+            r="2"
+          />
+        </symbol>
+        <symbol
+          id="i-arrow"
+          viewBox="0 0 24 24"
+        >
+          <path d="M4 12h16m-6-6 6 6-6 6" />
+        </symbol>
+        <symbol
+          id="i-chevron"
+          viewBox="0 0 24 24"
+        >
+          <path d="m9 5 7 7-7 7" />
+        </symbol>
+        <symbol
+          id="i-clip"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="m9 17 8-8a3 3 0 0 0-4-4L4 14a5 5 0 0 0 7 7L21 11a7 7 0 0 0-10-10L1 11m6 4 8-8"
+          />
+        </symbol>
+        <symbol
+          id="i-smile"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+          />
+          <path d="M8 14q4 5 8 0M8 8h.01M16 8h.01" />
+        </symbol>
+        <symbol
+          id="i-send"
+          viewBox="0 0 24 24"
+        >
+          <path d="m21 3-6 19-4-9-9-4Z m-10 10L21 3" />
+        </symbol>
+        <symbol
+          id="i-reset"
+          viewBox="0 0 24 24"
+        >
+          <path d="M3 10a9 9 0 1 1 1 8M3 3v7h7" />
+        </symbol>
+        <symbol
+          id="i-close"
+          viewBox="0 0 24 24"
+        >
+          <path d="m6 6 12 12M6 18 18 6" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="unified-header">
+      <div class="brand-lockup">
+        <svg
+          class="brand-mark"
+          aria-hidden="true"
+        >
+          <use href="#leaf-mark" />
+        </svg>
+        <div>
+          <span
+            class="brand-title"
+            id="brandName"
+            >Lumina Botanics</span
+          ><span class="brand-subtitle"
+            >BOTANICAL SKINCARE · DEMO STOREFRONT</span
+          >
+        </div>
+      </div>
+      <div class="command-pill-bar">
+        <span class="command-name">
+          <span
+            class="status-dot"
+            id="apiStatusDot"
+          ></span>
+          WISMO Support Assistant
+        </span>
+        <span
+          class="command-tag"
+          id="llmModeBadge"
+          ><span>Engine:</span><strong id="llmModeText">Checking…</strong></span
+        >
+        <span class="command-tag tenant-tag"
+          >Tenant: <strong id="tenantName">—</strong></span
+        >
+        <button
+          class="cmd-btn"
+          id="bhToggleBtn"
+          data-action="hours"
+          data-mutation
+          disabled
+          title="Toggle the sandbox's simulated business-hours clock"
+        >
+          <span id="bhLabel">Business Hours: —</span>
+        </button>
+        <button
+          class="cmd-btn"
+          id="xrayToggleBtn"
+          data-action="inspector"
+          aria-controls="xrayDrawer"
+          aria-expanded="false"
+        >
+          ✧ Architecture Telemetry: OFF
+        </button>
+        <button
+          class="cmd-btn"
+          id="resetBtn"
+          data-action="reset"
+          data-mutation
+          disabled
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+          >
+            <use href="#i-reset" /></svg
+          >Reset Demo
+        </button>
+      </div>
+      <nav
+        class="header-nav-tabs"
+        aria-label="Main navigation"
+      >
+        <button
+          class="nav-tab active"
+          id="tabOrdersBtn"
+          data-action="orders"
+          aria-current="page"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+          >
+            <use href="#i-orders" /></svg
+          >Orders
+        </button>
+        <button
+          class="nav-tab"
+          id="tabChatBtn"
+          data-action="focus-chat"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+          >
+            <use href="#i-chat" /></svg
+          >Live Chat
+        </button>
+        <button
+          class="nav-tab"
+          id="tabAnalyticsBtn"
+          data-action="analytics"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+          >
+            <use href="#i-chart" /></svg
+          >Analytics
+        </button>
+        <button
+          class="nav-tab"
+          id="tabKnowledgeBtn"
+          data-action="knowledge"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+          >
+            <use href="#i-book" /></svg
+          >Knowledge
+        </button>
+      </nav>
+      <div class="persona-pill">
+        <span
+          class="persona-avatar"
+          id="personaAvatar"
+          >—</span
+        >
+        <div>
+          <select
+            id="personaSelect"
+            class="persona-select"
+            aria-label="Demo customer"
+            data-mutation
+            disabled
+          >
+            <option>Loading</option></select
+          ><span class="persona-caption">Demo customer</span>
+        </div>
+      </div>
+    </header>
+
+    <div
+      class="notice-bar"
+      id="noticeBar"
+      role="status"
+      hidden
+    >
+      <span id="noticeText"></span
+      ><button data-action="refresh">Refresh</button>
+    </div>
+    <main
+      class="main-stage"
+      id="mainStage"
+    >
+      <section
+        class="storefront-pane"
+        aria-label="Customer order portal"
+      >
+        <div id="ordersPortalSection">
+          <div class="portal-heading">
+            <svg
+              class="hero-foliage"
+              viewBox="0 0 390 260"
+              aria-hidden="true"
+            >
+              <use
+                href="#sprig"
+                x="230"
+                y="10"
+                width="160"
+                height="240"
+              />
+              <use
+                href="#sprig"
+                x="175"
+                y="100"
+                width="180"
+                height="190"
+                transform="rotate(20 250 160)"
+                opacity=".5"
+              />
+              <use
+                href="#sprig"
+                x="110"
+                y="-100"
+                width="110"
+                height="210"
+                opacity=".2"
+              />
+            </svg>
+            <div class="botanical-hero-banner">
+              <div class="botanical-hero-left">
+                <div class="hero-leaf-circle">
+                  <svg aria-hidden="true"><use href="#leaf-mark" /></svg>
+                </div>
+                <div>
+                  <h1 class="botanical-hero-title">
+                    Your Recent Orders &amp; Carrier Telemetry
+                  </h1>
+                  <p class="botanical-hero-sub">
+                    Click any order action below to start a conversation, or
+                    test cross-customer isolation on the foreign AWB card.
+                  </p>
+                </div>
+              </div>
+              <button
+                class="store-btn primary cta-instant-order-btn"
+                data-action="shop"
+              >
+                ＋ Place Instant Demo Order
+              </button>
+            </div>
+            <div class="filter-toolbar">
+              <div
+                class="filter-pills"
+                aria-label="Filter orders"
+              >
+                <button
+                  class="filter-pill active"
+                  id="flt-all"
+                  data-filter="all"
+                  aria-pressed="true"
+                >
+                  All Viewable (—)
+                </button>
+                <button
+                  class="filter-pill"
+                  id="flt-active"
+                  data-filter="active"
+                  aria-pressed="false"
+                >
+                  Active Shipments
+                </button>
+                <button
+                  class="filter-pill"
+                  id="flt-attention"
+                  data-filter="attention"
+                  aria-pressed="false"
+                >
+                  Delayed / Failed Exception
+                </button>
+                <button
+                  class="filter-pill"
+                  id="flt-security"
+                  data-filter="security"
+                  aria-pressed="false"
+                >
+                  <svg
+                    class="icon"
+                    aria-hidden="true"
+                  >
+                    <use href="#i-lock" /></svg
+                  >Foreign AWB Security Test
+                </button>
+              </div>
+              <label class="search-box-wrap"
+                ><svg
+                  class="icon"
+                  aria-hidden="true"
+                >
+                  <use href="#i-search" /></svg
+                ><input
+                  id="orderSearchInput"
+                  type="search"
+                  placeholder="Search orders, AWB, product…"
+                  aria-label="Search orders, AWB or product"
+                  autocomplete="off"
+                /><kbd id="searchShortcut">⌘ K</kbd></label
+              >
+            </div>
+            <p
+              class="sandbox-caption"
+              id="sandboxCaption"
+            >
+              Shared demo sandbox · seeded orders, not live commerce data.
+            </p>
+          </div>
+          <div
+            class="orders-portal-grid"
+            id="ordersList"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div class="empty-orders">Loading orders from the sandbox…</div>
+          </div>
+        </div>
+        <div
+          id="shopCatalogSection"
+          hidden
+        >
+          <div class="catalog-heading">
+            <div>
+              <h2>Botanical essentials</h2>
+              <p>
+                Demo catalog · illustrated products. Orders update the sandbox
+                only.<br />No payment is taken and no physical order is placed.
+              </p>
+            </div>
+            <button
+              class="store-btn"
+              data-action="orders"
+            >
+              ← Back to Orders
+            </button>
+          </div>
+          <div
+            class="catalog-grid"
+            id="catalogGrid"
+          ></div>
+        </div>
+      </section>
+
+      <section
+        class="chat-dock"
+        id="chatDock"
+        aria-label="Lumina Concierge"
+      >
+        <div class="chat-widget-header">
+          <div class="chat-agent-profile">
+            <div
+              class="agent-avatar"
+              aria-hidden="true"
+            >
+              LB.
+            </div>
+            <div>
+              <div class="agent-title-row"><h2>Lumina Concierge</h2></div>
+              <div
+                class="agent-subline"
+                id="chatHeaderSubline"
+              >
+                Sandbox chat · checking engine
+              </div>
+            </div>
+          </div>
+          <div
+            class="channel-pill-switch"
+            aria-label="Chat channel"
+          >
+            <button
+              id="chanWhatsapp"
+              class="active"
+              data-channel="whatsapp"
+              data-mutation
+              aria-pressed="true"
+              disabled
+              title="WhatsApp-style sandbox chat; no WhatsApp delivery"
+            >
+              WhatsApp</button
+            ><button
+              id="chanWeb"
+              data-channel="web"
+              data-mutation
+              aria-pressed="false"
+              disabled
+            >
+              Web Chat
+            </button>
+          </div>
+        </div>
+        <div class="demo-scenarios-bar">
+          <div class="demo-scenarios-label">
+            <span>1-Click Guided Demo Scenarios</span
+            ><span>Click any scenario chip ›</span>
+          </div>
+          <div
+            class="scenario-chips-scroll"
+            id="scenarioChips"
+          ></div>
+        </div>
+        <div
+          class="chat-stream"
+          id="chatStream"
+          role="log"
+          aria-label="Conversation"
+          aria-live="polite"
+          aria-relevant="additions"
+        ></div>
+        <div
+          class="reference-picker"
+          id="referencePicker"
+          hidden
+        ></div>
+        <form
+          class="chat-composer"
+          id="chatForm"
+        >
+          <div class="composer-input-wrap">
+            <button
+              type="button"
+              class="composer-tool"
+              id="attachBtn"
+              data-action="attach"
+              data-mutation
+              disabled
+              aria-label="Insert an order reference"
+              title="Insert an order reference (not a file upload)"
+              aria-expanded="false"
+              aria-controls="referencePicker"
+            >
+              <svg
+                class="icon"
+                aria-hidden="true"
+              >
+                <use href="#i-clip" />
+              </svg></button
+            ><input
+              id="chatInput"
+              type="text"
+              placeholder="Message Lumina Concierge (Where is my order…)"
+              aria-label="Message Lumina Concierge"
+              autocomplete="off"
+              maxlength="4000"
+            /><button
+              type="button"
+              class="composer-tool"
+              data-action="emoji"
+              aria-label="Insert a smile emoji"
+            >
+              <svg
+                class="icon"
+                aria-hidden="true"
+              >
+                <use href="#i-smile" />
+              </svg>
+            </button>
+          </div>
+          <button
+            type="submit"
+            class="chat-send-btn"
+            id="sendBtn"
+            data-mutation
+            disabled
+            aria-label="Send message"
+          >
+            <svg
+              class="icon"
+              aria-hidden="true"
+            >
+              <use href="#i-send" />
+            </svg>
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <dialog
+      class="inspector"
+      id="xrayDrawer"
+      aria-labelledby="inspectorTitle"
+    >
+      <div class="inspector-header">
+        <h2 id="inspectorTitle">Architecture X-Ray</h2>
+        <button
+          class="icon-btn"
+          data-action="close-inspector"
+          aria-label="Close inspector"
+        >
+          <svg
+            class="icon"
+            aria-hidden="true"
+          >
+            <use href="#i-close" />
+          </svg>
+        </button>
+      </div>
+      <section
+        class="xray-box"
+        id="xrayTelemetryBox"
+      >
+        <h3>Execution telemetry</h3>
+        <p id="telemetryMode">Waiting for backend state.</p>
+        <p id="turnStepCount">— calls</p>
+        <div class="xray-metrics-grid">
+          <div class="xray-metric">
+            <strong id="metricInputTokens">—</strong><span>Input tokens</span>
+          </div>
+          <div class="xray-metric">
+            <strong id="metricCacheTokens">—</strong
+            ><span>Cache read tokens</span>
+          </div>
+          <div class="xray-metric">
+            <strong id="metricOutputTokens">—</strong><span>Output tokens</span>
+          </div>
+          <div class="xray-metric">
+            <strong id="metricLatency">—</strong
+            ><span>Cumulative call time</span>
+          </div>
+        </div>
+        <p id="outboxBadge">Outbox: —</p>
+      </section>
+      <section
+        class="xray-box"
+        id="xrayGuardrailsBox"
+      >
+        <h3>Demo policies &amp; boundaries</h3>
+        <ol class="guardrails-list">
+          <li>Tracking and cancellation decisions run in service code.</li>
+          <li>
+            Chat receives a tenant header. This playground does not authenticate
+            customers.
+          </li>
+          <li>
+            The foreign AWB scenario exercises ownership checks. The sandbox
+            inspector itself is not private.
+          </li>
+          <li>Model tool execution is bounded by the backend.</li>
+          <li>
+            Handoffs are queued in the demo outbox; no human agent is connected
+            here.
+          </li>
+        </ol>
+        <p>
+          State is shared in memory and resettable. WhatsApp is a channel
+          simulation here, not a connected business account. Product artwork is
+          illustrative. These are not production security or delivery
+          guarantees.
+        </p>
+        <p id="simulatedClock"></p>
+      </section>
+      <section class="xray-box">
+        <h3>Tool execution &amp; outbox trace</h3>
+        <div id="traceList">Waiting for backend state.</div>
+      </section>
+    </dialog>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const icon = (name) =>
+        `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+      const escapeHtml = (value) =>
+        String(value ?? "").replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch],
+        );
+      const artwork = (sku) =>
+        ({
+          "SERUM-VITC": "serum",
+          "CREAM-HYDRA": "cream",
+          "CLEANSER-GENTLE": "cleanser",
+        })[sku] || "botanical";
+      const productArt = (sku) =>
+        `<svg role="img" aria-label="Decorative product illustration" viewBox="0 0 120 120"><use href="#art-${artwork(sku)}"/></svg>`;
+      const conversations = new Map();
+      const drafts = new Map();
+      let latestState = null;
+      let currentPersona = "alice";
+      let currentChannel = "whatsapp";
+      let currentOrderFilter = "all";
+      let currentSearchQuery = "";
+      let busy = false;
+      let refreshing = false;
+      let stateFresh = false;
+      let pendingChatKey = null;
+      let lastActiveNav = "tabOrdersBtn";
+
+      function contextKey() {
+        return `${currentPersona}:${currentChannel}`;
+      }
+      function historyFor(key = contextKey()) {
+        if (!conversations.has(key)) conversations.set(key, []);
+        return conversations.get(key);
+      }
+      function persona() {
+        return latestState?.personas.find((p) => p.id === currentPersona);
+      }
+      function ownedOrders() {
+        return (latestState?.orders || []).filter(
+          (o) => o.owner_id === currentPersona,
+        );
+      }
+      function foreignOrders() {
+        return (latestState?.orders || []).filter(
+          (o) => o.owner_id !== currentPersona,
+        );
+      }
+      function engineLabel() {
+        const mode = latestState?.tenant.llm_execution_mode;
+        return mode === "simulator"
+          ? "Deterministic simulator"
+          : mode === "live"
+            ? "API configured"
+            : "Mode unavailable";
+      }
+      function formatTimestamp(value) {
+        if (!value) return "Not available";
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return "Not available";
+        try {
+          return new Intl.DateTimeFormat("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: latestState?.tenant.timezone || "UTC",
+            timeZoneName: "short",
+          }).format(date);
+        } catch {
+          return date.toISOString();
+        }
+      }
+      function browserTime(value) {
+        return new Date(value).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+      function statusLabel(status) {
+        return (
+          {
+            ORDER_PLACED: "Order Placed",
+            MANIFESTED: "Manifested",
+            IN_TRANSIT: "In Transit",
+            OUT_FOR_DELIVERY: "Out for Delivery",
+            FAILED_DELIVERY: "Delivery Failed",
+            PICKUP_FAILED: "Pickup Failed",
+            DELIVERED: "Delivered",
+            CANCELLED: "Cancelled",
+            RTO_IN_TRANSIT: "Return in Transit",
+            RTO_DELIVERED: "Returned",
+          }[status] || "Status unavailable"
+        );
+      }
+      function setNotice(message) {
+        $("noticeText").textContent = message;
+        $("noticeBar").hidden = !message;
+      }
+      function syncControls() {
+        document.querySelectorAll("[data-mutation]").forEach((el) => {
+          el.disabled =
+            busy ||
+            refreshing ||
+            !stateFresh ||
+            el.dataset.unavailable === "true";
+        });
+        $("chatInput").disabled = busy;
+        $("ordersList").setAttribute("aria-busy", String(refreshing));
+        $("apiStatusDot").classList.toggle("ready", stateFresh);
+        $("apiStatusDot").title = stateFresh
+          ? "Sandbox state loaded; not a live carrier connection"
+          : "Sandbox state unavailable or stale";
+      }
+      function setActiveNav(id) {
+        lastActiveNav = id;
+        document.querySelectorAll(".nav-tab").forEach((button) => {
+          button.classList.toggle("active", button.id === id);
+          if (button.id === id) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+      }
+      function showOrders() {
+        $("ordersPortalSection").hidden = false;
+        $("shopCatalogSection").hidden = true;
+        setActiveNav("tabOrdersBtn");
+      }
+      function focusChat() {
+        setActiveNav("tabChatBtn");
+        if (matchMedia("(max-width: 800px)").matches)
+          $("chatDock").scrollIntoView({ block: "start" });
+        $("chatInput").focus({ preventScroll: true });
+      }
+      function openInspector(section) {
+        if (!$("xrayDrawer").open) $("xrayDrawer").showModal();
+        $("xrayToggleBtn").setAttribute("aria-expanded", "true");
+        $("xrayToggleBtn").textContent = "✧ Architecture Telemetry: ON";
+        if (section) $(section).scrollIntoView({ block: "start" });
+      }
+
+      async function api(path, body) {
+        const response = await fetch(path, {
+          method: body === undefined ? "GET" : "POST",
+          headers:
+            body === undefined
+              ? {}
+              : {
+                  "Content-Type": "application/json",
+                  ...(path === "/v1/chat"
+                    ? { "X-Tenant-Id": String(latestState.tenant.tenant_id) }
+                    : {}),
+                },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          cache: "no-store",
+          signal: AbortSignal.timeout(path === "/v1/chat" ? 120000 : 15000),
+        });
+        if (!response.ok)
+          throw new Error(`Request failed (HTTP ${response.status}).`);
+        try {
+          return await response.json();
+        } catch {
+          throw new Error("The server returned an invalid response.");
+        }
+      }
+      function acceptState(state) {
+        if (
+          !state?.tenant ||
+          !Array.isArray(state.orders) ||
+          !Array.isArray(state.personas) ||
+          !Array.isArray(state.catalog)
+        )
+          throw new Error("The sandbox response is missing required state.");
+        latestState = state;
+        stateFresh = true;
+        if (!persona()) currentPersona = state.personas[0]?.id || "";
+        renderState();
+      }
+      async function refreshSandboxState() {
+        if (refreshing) return;
+        refreshing = true;
+        syncControls();
+        try {
+          acceptState(await api("/v1/sandbox/state"));
+          setNotice("");
+        } catch (error) {
+          stateFresh = false;
+          $("llmModeText").textContent = "State unavailable";
+          $("chatHeaderSubline").textContent =
+            "Sandbox unavailable · refresh to reconnect";
+          setNotice(
+            `${error.message} ${latestState ? "Showing the last loaded snapshot, not current data." : "Cannot load sandbox data."}`,
+          );
+          if (!latestState)
+            $("ordersList").innerHTML =
+              '<div class="empty-orders">Orders could not be loaded. Use Refresh above to try again.</div>';
+        } finally {
+          refreshing = false;
+          syncControls();
+        }
+      }
+      async function mutate(path, body, onSuccess) {
+        if (busy || refreshing || !stateFresh) return;
+        busy = true;
+        syncControls();
+        setNotice("");
+        try {
+          const result = await api(path, body);
+          acceptState(result.state || result);
+          onSuccess?.(result);
+        } catch (error) {
+          stateFresh = false;
+          setNotice(
+            `${error.message} The mutation may have reached the server. Refresh state before retrying.`,
+          );
+        } finally {
+          busy = false;
+          syncControls();
+        }
+      }
+
+      // A status summary, not an invented carrier event history.
+      function buildStepper(status) {
+        const ranks = {
+          ORDER_PLACED: 0,
+          MANIFESTED: 0,
+          IN_TRANSIT: 1,
+          OUT_FOR_DELIVERY: 2,
+          DELIVERED: 3,
+          FAILED_DELIVERY: 2,
+          PICKUP_FAILED: 0,
+        };
+        if (status === "CANCELLED")
+          return '<div class="connected-stepper" aria-label="Current status: cancelled"><span class="stepper-item cancelled"><i class="stepper-dot"></i>Cancelled</span></div>';
+        if (!(status in ranks))
+          return `<div class="connected-stepper"><span class="stepper-item">${escapeHtml(statusLabel(status))}</span></div>`;
+        const rank = ranks[status];
+        const labels = [
+          "Order Placed",
+          "In Transit",
+          "Out for Delivery",
+          "Delivered",
+        ];
+        if (status === "FAILED_DELIVERY") labels[2] = "Delivery Failed";
+        if (status === "PICKUP_FAILED") labels[0] = "Pickup Failed";
+        if (status === "MANIFESTED") labels[0] = "Manifested";
+        return `<div class="connected-stepper" aria-label="Status summary: ${escapeHtml(statusLabel(status))}" title="Status progression only; these are not individual scan events">${labels
+          .map((label, i) => {
+            const special =
+              status.endsWith("FAILED") || status === "FAILED_DELIVERY"
+                ? "alert"
+                : status === "OUT_FOR_DELIVERY"
+                  ? "purple"
+                  : "";
+            const stage =
+              i < rank || (i === rank && (rank === 0 || rank === 3))
+                ? "done"
+                : i === rank
+                  ? `current ${special}`
+                  : "";
+            const line =
+              i <= rank
+                ? i === rank && rank !== 3
+                  ? special || "blue"
+                  : "done"
+                : "";
+            return `${i ? `<i class="stepper-line ${line}" aria-hidden="true"></i>` : ""}<span class="stepper-item ${stage}"><i class="stepper-dot" aria-hidden="true"></i>${escapeHtml(label)}</span>`;
+          })
+          .join("")}</div>`;
+      }
+      function promptButton(text, label, className = "store-btn primary") {
+        return `<button class="${className}" data-prompt="${escapeHtml(text)}" data-mutation>${label}</button>`;
+      }
+      function renderOrderCard(order, index) {
+        const o = order;
+        const foreign = o.owner_id !== currentPersona;
+        if (foreign)
+          return `<article class="portal-order-card foreign-order"><div class="order-meta-top"><span class="order-ref-pill">${escapeHtml(o.order_ref)}</span><span class="payment-pill">Foreign customer · demo fixture</span></div><h3 class="order-item-title">Cross-customer ownership test</h3><p class="foreign-note">This AWB belongs to another demo customer. It is shown here to test chat's refusal to disclose their order details. The sandbox state endpoint itself is not private.</p><div class="order-footer-row"><div class="carrier-scan-note">AWB: ${escapeHtml(o.awb || "Not available")}</div>${o.awb ? promptButton(`Track AWB ${o.awb}`, `Test Foreign AWB ${icon("arrow")}`) : ""}</div></article>`;
+        const knownStatus = /^[A-Z_]+$/.test(o.status || "")
+          ? o.status
+          : "UNKNOWN";
+        const price =
+          o.price_display == null
+            ? ""
+            : `<span class="price-pill">${escapeHtml(o.price_display)}</span>`;
+        const quantity = o.qty == null ? "" : ` (Qty ${escapeHtml(o.qty)})`;
+        const cancelAction = o.can_cancel
+          ? promptButton(
+              `Please cancel my order ${o.order_ref}`,
+              "Request Pre-Pickup Cancel",
+              "store-btn cancel-btn",
+            )
+          : ["IN_TRANSIT", "OUT_FOR_DELIVERY", "FAILED_DELIVERY"].includes(
+                o.status,
+              )
+            ? promptButton(
+                `Please cancel my order ${o.order_ref}`,
+                "Test Post-Pickup Guard",
+                "store-btn",
+              )
+            : "";
+        return `<article class="portal-order-card" data-order-ref="${escapeHtml(o.order_ref)}">
+        <div class="order-top-row"><div class="product-thumb-art">${productArt(o.sku)}</div><div class="order-info">
+          <div class="order-heading-line"><div class="order-meta-top"><span class="order-ref-pill">${escapeHtml(o.order_ref)}</span>${o.payment_mode ? `<span class="payment-pill">${escapeHtml(o.payment_mode)}</span>` : ""}${price}${o.edd_breached ? '<span class="breach-pill">⚠ EDD Breached · Overdue</span>' : ""}</div><div class="order-status-right"><span class="order-status-pill ${knownStatus}">${escapeHtml(statusLabel(o.status))}</span><button class="order-expand" data-details="order-details-${index}" aria-controls="order-details-${index}" aria-expanded="false" aria-label="Show details for ${escapeHtml(o.order_ref)}">${icon("chevron")}</button></div></div>
+          <h3 class="order-item-title">${escapeHtml(o.item || "Product details unavailable")}${quantity}</h3><div class="order-subline"><span>Carrier: <strong>${escapeHtml(o.carrier || "Not available")}</strong></span><span>AWB: <code>${escapeHtml(o.awb || "Not available")}</code></span><span>Expected Delivery: <strong>${escapeHtml(o.edd || "Not available")}</strong></span></div>
+        </div></div>${buildStepper(o.status)}
+        <div class="order-footer-row"><div class="carrier-scan-note">${icon("pin")}<div class="scan-content"><div class="scan-left-text">Latest Scan: ${o.last_event_at ? `<strong>${escapeHtml(o.last_location || "Location not provided")}</strong>${o.last_remark ? ` — “${escapeHtml(o.last_remark)}”` : ""}` : "No scan available"}</div>${o.last_event_at ? `<time class="scan-timestamp" datetime="${escapeHtml(o.last_event_at)}">${escapeHtml(formatTimestamp(o.last_event_at))}</time>` : ""}</div></div><div class="order-action-btns">${promptButton(`Where is my order ${o.order_ref}?`, `Track in Chat ${icon("arrow")}`)}${cancelAction}</div></div>
+        <div class="order-details" id="order-details-${index}" hidden><dl><dt>Placed</dt><dd>${escapeHtml(formatTimestamp(o.placed_at))}</dd>${o.cancelled_at ? `<dt>Cancelled</dt><dd>${escapeHtml(formatTimestamp(o.cancelled_at))}</dd>` : ""}<dt>Record source</dt><dd>Shared in-memory sandbox; seeded or demo-created order.</dd><dt>Scan &amp; progress</dt><dd>The latest stored carrier scan is shown above. The progress bar summarizes the current status, not separate scan events.</dd></dl></div>
+      </article>`;
+      }
+      function renderOrders() {
+        if (!latestState) return;
+        const search = currentSearchQuery.trim().toLowerCase();
+        const orders = latestState.orders.filter((o) => {
+          const own = o.owner_id === currentPersona;
+          const match =
+            currentOrderFilter === "all" ||
+            (currentOrderFilter === "security" && !own) ||
+            (currentOrderFilter === "active" &&
+              own &&
+              !["CANCELLED", "DELIVERED", "RTO_DELIVERED"].includes(
+                o.status,
+              )) ||
+            (currentOrderFilter === "attention" &&
+              own &&
+              (o.edd_breached ||
+                ["FAILED_DELIVERY", "PICKUP_FAILED"].includes(o.status)));
+          return (
+            match &&
+            (!search ||
+              [
+                o.order_ref,
+                o.awb,
+                own ? o.item : "Foreign customer ownership test",
+              ].some((value) =>
+                String(value || "")
+                  .toLowerCase()
+                  .includes(search),
+              ))
+          );
+        });
+        $("flt-all").textContent =
+          `All Viewable (${latestState.orders.length})`;
+        document.querySelectorAll("[data-filter]").forEach((el) => {
+          el.classList.toggle(
+            "active",
+            el.dataset.filter === currentOrderFilter,
+          );
+          el.setAttribute(
+            "aria-pressed",
+            String(el.dataset.filter === currentOrderFilter),
+          );
+        });
+        $("ordersList").innerHTML = orders.length
+          ? orders.map(renderOrderCard).join("")
+          : '<div class="empty-orders">No orders match this view. Try another filter or search.</div>';
+        syncControls();
+      }
+      function renderCatalog() {
+        $("catalogGrid").innerHTML = latestState.catalog
+          .map(
+            (p, index) =>
+              `<article class="product-card"><div class="product-visual-box">${productArt(p.sku)}</div><h3>${escapeHtml(p.name || "Product details unavailable")}</h3><p>Illustrated demo catalog item · ${escapeHtml(p.sku)}</p><div class="product-card-footer"><strong>${escapeHtml(p.price_display || "Price unavailable")}</strong><button class="store-btn primary" data-create="${index}" data-mutation data-unavailable="${!Number.isInteger(p.price_cents)}">＋ Demo Order</button></div></article>`,
+          )
+          .join("");
+      }
+      function renderScenarios() {
+        const mine = ownedOrders();
+        const delayed = mine.find((o) => o.edd_breached);
+        const failed = mine.find((o) => o.status === "FAILED_DELIVERY");
+        const cancellable = mine.find((o) => o.can_cancel);
+        const shipped = mine.find((o) =>
+          ["OUT_FOR_DELIVERY", "IN_TRANSIT"].includes(o.status),
+        );
+        const cod = mine.find(
+          (o) => o.payment_mode === "COD" && o.status === "CANCELLED",
+        );
+        const foreign = foreignOrders().find((o) => o.awb);
+        const chips = [
+          ["1. Ambiguous Orders", "Where is my order?", true],
+          [
+            `2. Delayed EDD${delayed ? ` (${delayed.order_ref})` : ""}`,
+            delayed && `Where is my order ${delayed.order_ref}?`,
+            !!delayed,
+          ],
+          [
+            `3. Failed Delivery${failed ? ` (${failed.order_ref})` : ""}`,
+            failed && `Why did delivery fail for ${failed.order_ref}?`,
+            !!failed,
+          ],
+          [
+            `4a. Cancel Pre-Pickup${cancellable ? ` (${cancellable.order_ref})` : ""}`,
+            cancellable && `Please cancel my order ${cancellable.order_ref}`,
+            !!cancellable,
+          ],
+          ["4b. Confirm “Yes”", "Yes", true],
+          [
+            `5. Refuse Post-Pickup${shipped ? ` (${shipped.order_ref})` : ""}`,
+            shipped && `Please cancel my order ${shipped.order_ref}`,
+            !!shipped,
+          ],
+          [
+            `6. COD Refund Policy${cod ? ` (${cod.order_ref})` : ""}`,
+            cod &&
+              `Where is the refund for my cancelled COD order ${cod.order_ref}?`,
+            !!cod,
+          ],
+          [
+            "7. Foreign AWB Guard",
+            foreign && `Track AWB ${foreign.awb}`,
+            !!foreign,
+          ],
+          [
+            "8. Human Handoff",
+            "Please connect me to a human support agent",
+            true,
+          ],
+        ];
+        $("scenarioChips").innerHTML = chips
+          .map(
+            ([label, text, available]) =>
+              `<button class="scenario-chip" data-prompt="${escapeHtml(text || "")}" data-mutation data-unavailable="${!available}" title="${available ? "Send this scenario to the sandbox chat" : "No matching order for this demo customer"}">${escapeHtml(label)}</button>`,
+          )
+          .join("");
+      }
+      function renderTelemetry() {
+        const calls = latestState.llm_calls || [];
+        const sum = (key) =>
+          calls.reduce((total, c) => total + (Number(c[key]) || 0), 0);
+        $("metricInputTokens").textContent =
+          sum("input_tokens").toLocaleString();
+        $("metricOutputTokens").textContent =
+          sum("output_tokens").toLocaleString();
+        $("metricCacheTokens").textContent =
+          sum("cache_read_tokens").toLocaleString();
+        $("metricLatency").textContent =
+          `${sum("latency_ms").toLocaleString()} ms`;
+        $("turnStepCount").textContent =
+          `${calls.length} recorded calls · all customers and channels in this sandbox`;
+        $("telemetryMode").textContent = latestState.tenant
+          .telemetry_is_estimated
+          ? "Deterministic simulator. Token and cache counters are estimates, not model usage or billing. Time measures local execution."
+          : `Live API configured for ${latestState.tenant.configured_model || "an unspecified model"}. Configuration does not verify availability or the provider's returned model identity. No cost estimate is shown.`;
+        $("outboxBadge").textContent =
+          `Outbox: ${(latestState.outbox || []).length} queued demo events · no delivery receipt`;
+        $("simulatedClock").textContent =
+          `Simulated time: ${formatTimestamp(latestState.tenant.current_simulated_time)}. The business-hours toggle changes this fixed test clock, not actual agent availability.`;
+        const trace = calls
+          .slice()
+          .reverse()
+          .map(
+            (call) =>
+              `<details class="trace-card"><summary>Call ${escapeHtml(call.id)} · step ${escapeHtml(call.step)} · ${escapeHtml(call.stop_reason)} · ${escapeHtml(call.latency_ms ?? "—")} ms</summary><pre class="trace-pre">${escapeHtml(JSON.stringify(call, null, 2))}</pre></details>`,
+          );
+        (latestState.outbox || [])
+          .slice()
+          .reverse()
+          .forEach((entry) =>
+            trace.push(
+              `<details class="trace-card"><summary>Outbox · ${escapeHtml(entry.event_type)} · ${escapeHtml(formatTimestamp(entry.created_at))}</summary><pre class="trace-pre">${escapeHtml(JSON.stringify(entry, null, 2))}</pre></details>`,
+            ),
+          );
+        $("traceList").innerHTML =
+          trace.join("") || "<p>No calls or outbox events recorded yet.</p>";
+      }
+      function renderState() {
+        const tenant = latestState.tenant;
+        $("brandName").textContent = tenant.name;
+        $("tenantName").textContent = tenant.name;
+        $("llmModeText").textContent =
+          tenant.llm_execution_mode === "simulator"
+            ? "Simulator"
+            : engineLabel();
+        $("llmModeBadge").title = engineLabel();
+        $("bhLabel").textContent =
+          `Business Hours: ${tenant.is_business_hours ? "OPEN" : "CLOSED"}`;
+        $("bhToggleBtn").setAttribute(
+          "aria-pressed",
+          String(tenant.is_business_hours),
+        );
+        $("chatHeaderSubline").textContent = `Sandbox chat · ${engineLabel()}`;
+        $("sandboxCaption").textContent =
+          `Shared demo sandbox · not live carrier data · simulated clock: ${formatTimestamp(tenant.current_simulated_time)}`;
+        $("personaSelect").innerHTML = latestState.personas
+          .map(
+            (p) =>
+              `<option value="${escapeHtml(p.id)}">${escapeHtml(p.label.split(" ")[0])}</option>`,
+          )
+          .join("");
+        $("personaSelect").value = currentPersona;
+        $("personaAvatar").textContent = (persona()?.label || "?").slice(0, 1);
+        renderOrders();
+        renderCatalog();
+        renderScenarios();
+        renderTelemetry();
+        syncControls();
+      }
+
+      function renderConversation() {
+        const messages = historyFor();
+        const note =
+          '<p class="conversation-note">Demo channel · no WhatsApp delivery or read receipts.<br>Only messages sent in this tab are shown; server context may already exist.</p>';
+        const empty =
+          '<div class="empty-chat"><div class="empty-avatar" aria-hidden="true">LB.</div><h3>A little care, every step.</h3><p>Track an order, ask about a delivery, or choose a scenario above to start.<br>No sample conversation has been added.</p></div>';
+        $("chatStream").innerHTML =
+          note +
+          (messages.length ? messages.map(renderMessage).join("") : empty);
+        if (pendingChatKey === contextKey()) {
+          $("chatStream").insertAdjacentHTML(
+            "beforeend",
+            '<div class="msg-row assistant" id="typingBubble"><div class="assistant-row-inner"><span class="msg-bot-avatar">LB.</span><div class="msg-bubble"><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Waiting for the sandbox response…</span></div></div></div>',
+          );
+        }
+        $("chatStream").scrollTop = $("chatStream").scrollHeight;
+        syncControls();
+      }
+      function renderMessage(message) {
+        const timestamp = `<time class="msg-time" datetime="${escapeHtml(message.at)}" title="Browser ${message.role === "user" ? "submission" : "receipt"} time, not a provider receipt">${escapeHtml(browserTime(message.at))}</time>`;
+        if (message.role === "error")
+          return `<div class="system-error" role="alert">${escapeHtml(message.text)}</div>`;
+        if (message.role === "user")
+          return `<div class="msg-row user"><div class="msg-bubble"><div class="msg-text">${escapeHtml(message.text)}</div>${timestamp}</div></div>`;
+        const reply = message.reply;
+        const cards = (reply.order_cards || [])
+          .map(
+            (o) =>
+              `<div class="chat-order-card"><strong>${escapeHtml(o.order_ref)} · ${escapeHtml(o.title)}</strong><span>Placed: ${escapeHtml(formatTimestamp(o.placed_at))}</span><div class="chat-order-btns">${promptButton(o.order_ref, "Select order", "chat-mini-btn")}</div></div>`,
+          )
+          .join("");
+        const flags = [
+          reply.ask_order_selection
+            ? '<span class="flag-pill">Select an order</span>'
+            : "",
+          reply.escalate
+            ? '<span class="flag-pill escalate">Escalation signalled · demo</span>'
+            : "",
+          reply.show_return_link
+            ? '<span class="flag-pill">Return requested · no return URL supplied</span>'
+            : "",
+        ].join("");
+        return `<div class="msg-row assistant"><div class="assistant-row-inner"><span class="msg-bot-avatar" aria-hidden="true">LB.</span><div class="assistant-bubble-col"><div class="msg-sender-label">${escapeHtml(message.engine)} · ${(message.elapsedMs / 1000).toFixed(2)}s request</div><div class="msg-bubble"><div class="msg-text">${escapeHtml(reply.reply_text || "[No reply text returned by the backend.]")}</div>${cards ? `<div class="chat-order-cards">${cards}</div>` : ""}${timestamp}</div>${flags ? `<div class="reply-flags">${flags}</div>` : ""}${reply.escalate ? '<p class="handoff-note">This playground does not connect a human agent. Inspect the demo outbox for any queued handoff.</p>' : ""}</div></div></div>`;
+      }
+      async function sendMessage(text) {
+        text = String(text || "").trim();
+        if (!text || busy || refreshing || !stateFresh || !persona()) return;
+        const customer = persona();
+        const key = contextKey();
+        const channel = currentChannel;
+        const engine = engineLabel();
+        busy = true;
+        pendingChatKey = key;
+        drafts.set(key, "");
+        $("chatInput").value = "";
+        $("referencePicker").hidden = true;
+        $("attachBtn").setAttribute("aria-expanded", "false");
+        historyFor(key).push({
+          role: "user",
+          text,
+          at: new Date().toISOString(),
+        });
+        focusChat();
+        renderConversation();
+        const start = performance.now();
+        try {
+          const reply = await api("/v1/chat", {
+            channel,
+            external_message_id: `ui-${crypto.randomUUID()}`,
+            phone: customer.phone,
+            email: customer.email,
+            text,
+          });
+          if (typeof reply.reply_text !== "string")
+            throw new Error("The server returned an invalid chat reply.");
+          historyFor(key).push({
+            role: "assistant",
+            reply,
+            engine,
+            elapsedMs: performance.now() - start,
+            at: new Date().toISOString(),
+          });
+        } catch (error) {
+          historyFor(key).push({
+            role: "error",
+            text: `${error.message} No reply was received. The request may have been processed; check state before retrying.`,
+            at: new Date().toISOString(),
+          });
+        } finally {
+          pendingChatKey = null;
+          renderConversation();
+          await refreshSandboxState();
+          busy = false;
+          syncControls();
+          $("chatInput").focus({ preventScroll: true });
+        }
+      }
+      function switchContext(personaId, channel) {
+        if (busy || refreshing) return;
+        drafts.set(contextKey(), $("chatInput").value);
+        currentPersona = personaId;
+        currentChannel = channel;
+        $("chatInput").value = drafts.get(contextKey()) || "";
+        $("referencePicker").hidden = true;
+        $("attachBtn").setAttribute("aria-expanded", "false");
+        document.querySelectorAll("[data-channel]").forEach((el) => {
+          el.classList.toggle("active", el.dataset.channel === channel);
+          el.setAttribute(
+            "aria-pressed",
+            String(el.dataset.channel === channel),
+          );
+        });
+        $("chatDock").classList.toggle("web-mode", channel === "web");
+        renderState();
+        renderConversation();
+      }
+      function insertText(text) {
+        const input = $("chatInput");
+        if (input.disabled) return;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+        input.setRangeText(text, start, end, "end");
+        drafts.set(contextKey(), input.value);
+        input.focus();
+      }
+
+      // Dynamic API data is never interpolated into inline JavaScript handlers.
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button || button.disabled) return;
+        if (button.dataset.prompt !== undefined) {
+          sendMessage(button.dataset.prompt);
+          return;
+        }
+        if (button.dataset.channel) {
+          switchContext(currentPersona, button.dataset.channel);
+          return;
+        }
+        if (button.dataset.filter) {
+          currentOrderFilter = button.dataset.filter;
+          renderOrders();
+          return;
+        }
+        if (button.dataset.details) {
+          const details = $(button.dataset.details);
+          details.hidden = !details.hidden;
+          button.setAttribute("aria-expanded", String(!details.hidden));
+          return;
+        }
+        if (button.dataset.reference) {
+          insertText(button.dataset.reference);
+          $("referencePicker").hidden = true;
+          $("attachBtn").setAttribute("aria-expanded", "false");
+          return;
+        }
+        if (button.dataset.create !== undefined) {
+          const item = latestState?.catalog[Number(button.dataset.create)];
+          if (item)
+            mutate(
+              "/v1/sandbox/create-order",
+              {
+                persona_id: currentPersona,
+                sku: item.sku,
+                name: item.name,
+                price_cents: item.price_cents,
+                payment_mode: "PREPAID",
+              },
+              (result) => {
+                currentOrderFilter = "all";
+                currentSearchQuery = "";
+                $("orderSearchInput").value = "";
+                showOrders();
+                renderOrders();
+                setNotice(
+                  `Created demo order ${result.created_order_ref}. No payment or physical order was made.`,
+                );
+              },
+            );
+          return;
+        }
+        switch (button.dataset.action) {
+          case "orders":
+            showOrders();
+            break;
+          case "shop":
+            $("ordersPortalSection").hidden = true;
+            $("shopCatalogSection").hidden = false;
+            setActiveNav("tabOrdersBtn");
+            break;
+          case "focus-chat":
+            focusChat();
+            break;
+          case "analytics":
+            openInspector("xrayTelemetryBox");
+            break;
+          case "knowledge":
+            openInspector("xrayGuardrailsBox");
+            break;
+          case "inspector":
+            $("xrayDrawer").open ? $("xrayDrawer").close() : openInspector();
+            break;
+          case "close-inspector":
+            $("xrayDrawer").close();
+            break;
+          case "refresh":
+            if (!busy) refreshSandboxState();
+            break;
+          case "hours":
+            mutate("/v1/sandbox/business-hours", {
+              inside_business_hours: !latestState.tenant.is_business_hours,
+            });
+            break;
+          case "reset":
+            if (
+              confirm(
+                "Reset the shared demo sandbox? This deletes demo-created orders, conversation history and telemetry for everyone using this instance. It does not change real orders.",
+              )
+            ) {
+              mutate("/v1/sandbox/reset", {}, () => {
+                conversations.clear();
+                drafts.clear();
+                $("chatInput").value = "";
+                currentOrderFilter = "all";
+                currentSearchQuery = "";
+                $("orderSearchInput").value = "";
+                renderOrders();
+                renderConversation();
+                setNotice(
+                  "Shared demo sandbox reset. The business-hours setting is unchanged.",
+                );
+              });
+            }
+            break;
+          case "emoji":
+            insertText("🙂");
+            break;
+          case "attach": {
+            const picker = $("referencePicker");
+            picker.hidden = !picker.hidden;
+            $("attachBtn").setAttribute(
+              "aria-expanded",
+              String(!picker.hidden),
+            );
+            picker.innerHTML =
+              "<p>Insert a reference into your message. Nothing is sent automatically.</p>" +
+              (ownedOrders()
+                .map(
+                  (o) =>
+                    `<button type="button" data-reference="${escapeHtml(o.order_ref)}">${escapeHtml(o.order_ref)} · ${escapeHtml(o.item || "Product unavailable")}</button>`,
+                )
+                .join("") || "<p>No owned orders available.</p>");
+            break;
+          }
+        }
+      });
+      $("chatForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        sendMessage($("chatInput").value);
+      });
+      $("chatInput").addEventListener("input", () =>
+        drafts.set(contextKey(), $("chatInput").value),
+      );
+      $("personaSelect").addEventListener("change", (event) =>
+        switchContext(event.target.value, currentChannel),
+      );
+      $("orderSearchInput").addEventListener("input", (event) => {
+        currentSearchQuery = event.target.value;
+        renderOrders();
+      });
+      $("xrayDrawer").addEventListener("close", () => {
+        $("xrayToggleBtn").setAttribute("aria-expanded", "false");
+        $("xrayToggleBtn").textContent =
+          "✧ Architecture Telemetry: OFF";
+        setActiveNav(lastActiveNav);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === "k" &&
+          !$("xrayDrawer").open
+        ) {
+          event.preventDefault();
+          showOrders();
+          $("orderSearchInput").focus();
+        }
+        if (event.key === "Escape") {
+          $("referencePicker").hidden = true;
+          $("attachBtn").setAttribute("aria-expanded", "false");
+        }
+      });
+      if (!/Mac|iPhone|iPad/.test(navigator.platform))
+        $("searchShortcut").textContent = "Ctrl K";
+      renderConversation();
+      refreshSandboxState();
+    </script>
+  </body>
+</html>

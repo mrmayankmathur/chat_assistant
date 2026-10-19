@@ -21,7 +21,7 @@ on WhatsApp and web chat—separating deterministic policy enforcement from LLM 
 <br>
 
 > [!IMPORTANT]
-> This repository implements the application service layer (`api → service → repository`), a 17-table PostgreSQL 16 schema and Alembic migration, an 11-scenario evaluation harness, and executable concurrency/scale validation harnesses. The default local test and evaluation suites run against deterministic in-memory repositories and a local simulator—passing offline verification does not substitute for live PostgreSQL 16 cluster deployment, PgBouncer provisioning, or live Anthropic/CRM API credentials.
+> This repository implements the application service layer (`api → service → repository`), a 17-table PostgreSQL 16 schema and Alembic migration, an 11-scenario evaluation harness, and executable concurrency/scale validation harnesses powered exclusively by **GPT 6 Luna (`gpt-6-luna`)**. The default local test and evaluation suites run against deterministic in-memory repositories and a local simulator—passing offline verification does not substitute for live PostgreSQL 16 cluster deployment, PgBouncer provisioning, or live GPT 6 Luna / CRM API credentials.
 
 <details>
 <summary><kbd>Table of Contents</kbd></summary>
@@ -36,7 +36,7 @@ on WhatsApp and web chat—separating deterministic policy enforcement from LLM 
     - [2. Concurrency, fault-injection, and scale gates (`4/4 PASS`)](#2-concurrency-fault-injection-and-scale-gates-44-pass)
   - [Verify locally](#verify-locally)
     - [Live PostgreSQL 16 schema and seed verification](#live-postgresql-16-schema-and-seed-verification)
-    - [Live Anthropic evaluation mode](#live-anthropic-evaluation-mode)
+    - [Live GPT 6 Luna evaluation mode](#live-gpt-6-luna-evaluation-mode)
   - [Project map](#project-map)
     - [Follow the evidence](#follow-the-evidence)
   - [Boundaries and next steps](#boundaries-and-next-steps)
@@ -268,14 +268,14 @@ The scale validation suite ([`services/scale_validation.py`](services/scale_vali
 | **Gate 3A · Lease Expiry & Zombie Fence** | Worker A stalls past 30s TTL; Worker B acquires `fence_token=2`; Worker A wakes and attempts `cancel_order` and turn commit. | **PASS** · Worker A rejected with `StaleFenceTokenError`; zero zombie writes |
 | **Gate 3B · Abandoned Idempotency Takeover** | Worker A crashes mid-turn (`status=1`); Worker B takes over after TTL (`claim_token=2`); Worker A attempts late finalization. | **PASS** · Worker A rejected with `StaleIdempotencyClaimError`; `claim_token=2` wins |
 | **Gate 3C · Transactional Outbox Recovery** | Worker crashes after Phase B commit before CRM call; outbox worker retries with `idempotency_key="esc:{id}"`. | **PASS** · `1` CRM ticket created across retries; `crm_ticket_id` linked |
-| **Gate 4 · 300 TPS / 8-Workspace Quota & Cost** | 8 tenant-sticky Anthropic workspaces (`sha256(tenant_id) % 8`) with 100ms token-bucket slices and PgBouncer queue wait age check. | **PASS** · `3,600 RPM/ws` (90% of Tier-4), `86.96%` cache hit, `$0.00540`/turn (`$10,800`/day) |
+| **Gate 4 · 300 TPS / 8-Workspace Quota & Cost** | 8 tenant-sticky GPT 6 Luna workspaces (`sha256(tenant_id) % 8`) with 100ms token-bucket slices and PgBouncer queue wait age check. | **PASS** · `3,600 RPM/ws` (90% of Tier-4), `86.96%` cache hit, `$0.00540`/turn (`$10,800`/day) |
 
 <details>
 <summary><b>Token economics and PgBouncer queue wait formula</b></summary>
 
-At 1.6 LLM calls/turn and 2,300 input tokens/call (2,000 cached prefix + 300 uncached dynamic suffix) + 200 output tokens/call using Claude Haiku 4.5 pricing (`$1.00`/MTok uncached input, `$0.10`/MTok cache read, `$5.00`/MTok output):
+At 1.6 LLM calls/turn and 2,300 input tokens/call (2,000 cached prefix + 300 uncached dynamic suffix) + 200 output tokens/call using GPT 6 Luna (`gpt-6-luna`) pricing (`$1.00`/MTok uncached input, `$0.10`/MTok cache read, `$5.00`/MTok output):
 
-- **Per-workspace load (8 workspaces at 300 turns/sec):** `3,600 RPM`, `1,512,000 ITPM` (counting only the 300 uncached input tokens/call + 150-token amortization against Anthropic's ITPM limit), and `306,000 OTPM`.
+- **Per-workspace load (8 workspaces at 300 turns/sec):** `3,600 RPM`, `1,512,000 ITPM` (counting only the 300 uncached input tokens/call + 150-token amortization against the workspace ITPM limit), and `306,000 OTPM`.
 - **Per-call cost:** `(300 × $1.00 + 2,000 × $0.10 + 200 × $5.00) / 1,000,000 = $0.00150` (+ `$0.00075` amortized cache write) $\rightarrow$ **`$0.00540` per customer turn** (`$10,800/day` across 2M turns, vs. `$17,440/day` uncached).
 - **PgBouncer Queue Wait Age:** `SHOW STATS` exposes `maxwait` (integer seconds) and `maxwait_us` (microseconds remainder `0–999,999`). Queue wait age in milliseconds is computed as `(maxwait * 1000.0) + (maxwait_us / 1000.0)` and must remain `< 50.0 ms`.
 
@@ -311,6 +311,18 @@ Gate 4 (300 TPS / 480 RPS / 8 Workspaces): PASS (RPM/ws=3600, ITPM/ws=1512000, O
 === ALL 4 VALIDATION GATES PASSED ===
 ```
 
+### Interactive Web Console (Frontend Playground)
+
+Launch the interactive browser console to chat with the assistant, test 1-click scenarios (ambiguous order cards, EDD breach apology, 2-step pre-pickup cancellation, post-pickup refusal, foreign AWB isolation, COD refund, and human handoff), toggle business hours, and inspect live tool calls, prompt-cache token telemetry, and transactional outbox events:
+
+```bash
+# Start the local FastAPI + Interactive Console on http://127.0.0.1:8000 (powered by GPT 6 Luna / gpt-6-luna)
+.venv/bin/python -m app.main
+
+# Or override the model via LLM_MODEL / live API credentials:
+LLM_MODEL="gpt-6-luna" WISMO_LIVE_LLM=1 .venv/bin/python -m app.main
+```
+
 ### Live PostgreSQL 16 schema and seed verification
 
 Two tests in [`tests/test_schema_and_seed.py`](tests/test_schema_and_seed.py) verify live PostgreSQL partial unique indexes and foreign-key constraints. When PostgreSQL is running locally, execute:
@@ -323,12 +335,12 @@ DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/wismo" .venv
 TEST_DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/wismo" .venv/bin/pytest tests/test_schema_and_seed.py -v
 ```
 
-### Live Anthropic evaluation mode
+### Live GPT 6 Luna evaluation mode
 
-By default, `python -m evals run` uses [`LocalEvalAnthropicClient`](evals/agent_simulator.py) so CI and offline runs are deterministic and free. To run the 11 scenarios against the live Anthropic API:
+By default, `python -m evals run` uses the built-in GPT 6 Luna deterministic simulator ([`LocalEvalAnthropicClient`](evals/agent_simulator.py)) so CI and offline runs are deterministic and free. To run with live GPT 6 Luna (`gpt-6-luna`) configuration via `.env`:
 
 ```bash
-ANTHROPIC_API_KEY="sk-ant-..." WISMO_EVAL_LIVE=1 .venv/bin/python -m evals run
+OPENAI_API_KEY="sk-..." LLM_MODEL="gpt-6-luna" WISMO_EVAL_LIVE=1 .venv/bin/python -m evals run
 ```
 
 <div align="right"><a href="#readme-top">Back to top ↑</a></div>

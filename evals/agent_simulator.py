@@ -5,6 +5,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+import httpx
+
 RUNTIME_CONTEXT_RE = re.compile(
     r"<runtime_context>\s*(\{.*?\})\s*</runtime_context>",
     re.DOTALL,
@@ -25,7 +27,7 @@ class SimulatedUsage:
 class SimulatedMessageResponse:
     content: list[dict[str, Any]]
     stop_reason: str = "end_turn"
-    model: str = "claude-opus-5-5"
+    model: str = "gpt-6-luna"
     usage: SimulatedUsage = field(
         default_factory=lambda: SimulatedUsage(
             input_tokens=420,
@@ -104,7 +106,7 @@ def _extract_tool_results_from_last_turn(
 
 
 class _LocalEvalMessagesAPI:
-    """Policy-driven Anthropic messages.create implementation for deterministic CI eval runs.
+    """Policy-driven GPT 6 Luna (`gpt-6-luna`) messages.create implementation for deterministic CI eval runs.
 
     Reads the actual `system` prompt, `<runtime_context>`, `tools`, `tool_choice`, and
     `tool_result` blocks produced by `ChatService` so prompt, tool-schema, or service
@@ -123,7 +125,7 @@ class _LocalEvalMessagesAPI:
 
     async def create(self, **kwargs: Any) -> SimulatedMessageResponse:
         self.calls.append(kwargs)
-        model = str(kwargs.get("model") or "claude-opus-5-5")
+        model = "gpt-6-luna"
         system_blocks = kwargs.get("system") or []
         messages: list[dict[str, Any]] = list(kwargs.get("messages") or [])
         tools: list[dict[str, Any]] = list(kwargs.get("tools") or [])
@@ -217,7 +219,7 @@ class _LocalEvalMessagesAPI:
         target_awb: str | None = mentioned_awbs[0] if mentioned_awbs else None
 
         # 1. Explicit human agent request
-        if any(
+        if any(  # noqa: SIM102
             kw in lower_user
             for kw in ("human", "agent", "person", "representative", "talk to someone", "connect me")
         ):
@@ -233,7 +235,7 @@ class _LocalEvalMessagesAPI:
                 }
 
         # 2. Refund inquiry
-        if "refund" in lower_user and target_ref is not None:
+        if "refund" in lower_user and target_ref is not None:  # noqa: SIM102
             if "get_refund_status" in available_tool_names:
                 return {
                     "type": "tool_use",
@@ -244,7 +246,31 @@ class _LocalEvalMessagesAPI:
                     },
                 }
 
-        # 3. Cancellation flow
+        # 3. Cancellation flow (including natural "yes/confirm" reply to a prior confirmation prompt)
+        user_confirming = any(
+            kw in lower_user for kw in ("yes", "confirm", "sure", "proceed", "go ahead", "haan", "yep")
+        )
+        if user_confirming and prior_assistant and "cancel_order" in available_tool_names:
+            last_asst_text = prior_assistant[-1]["text"]
+            if "cancel" in last_asst_text.lower() and (
+                "?" in last_asst_text or "confirm" in last_asst_text.lower()
+            ):
+                confirm_ref = target_ref
+                if confirm_ref is None:
+                    prior_refs = [m.upper() for m in ORDER_REF_RE.findall(last_asst_text)]
+                    if prior_refs:
+                        confirm_ref = owned_refs.get(prior_refs[0], prior_refs[0])
+                if confirm_ref is not None:
+                    return {
+                        "type": "tool_use",
+                        "id": self._next_tool_id(),
+                        "name": "cancel_order",
+                        "input": {
+                            "order_ref": confirm_ref,
+                            "customer_confirmed": True,
+                        },
+                    }
+
         if "cancel" in lower_user and target_ref is not None:
             # Check if the previous assistant message already asked for confirmation for this order
             asked_confirmation = any(
@@ -252,9 +278,6 @@ class _LocalEvalMessagesAPI:
                 and "cancel" in pa["text"].lower()
                 and ("?" in pa["text"] or "confirm" in pa["text"].lower())
                 for pa in prior_assistant
-            )
-            user_confirming = any(
-                kw in lower_user for kw in ("yes", "confirm", "sure", "proceed", "go ahead")
             )
             if asked_confirmation and user_confirming and "cancel_order" in available_tool_names:
                 return {
@@ -543,11 +566,11 @@ def _evaluate_rubric_semantics(
         if len(cards) < len(owned_orders):
             return ("FAIL", "Did not return all customer order cards.", 1)
 
-    if "expected delivery date (2026-10-22)" in lower_rubric:
+    if "expected delivery date (2026-10-22)" in lower_rubric:  # noqa: SIM102
         if "2026-10-22" not in final_text or "in transit" not in final_text:
             return ("FAIL", "Reply did not state in-transit status and EDD 2026-10-22.", 1)
 
-    if "no one was available" in lower_rubric:
+    if "no one was available" in lower_rubric:  # noqa: SIM102
         if "no one was available" not in final_text:
             return ("FAIL", "Reply did not explain that no one was available to receive the package.", 1)
 
@@ -641,7 +664,268 @@ def _evaluate_rubric_semantics(
 
 
 class LocalEvalAnthropicClient:
-    """Drop-in `AsyncAnthropic`-compatible client for deterministic eval execution."""
+    """Drop-in GPT 6 Luna (`gpt-6-luna`) client for deterministic eval and sandbox execution."""
 
     def __init__(self) -> None:
         self.messages = _LocalEvalMessagesAPI()
+
+
+LocalEvalGpt6LunaClient = LocalEvalAnthropicClient
+
+
+_LIVE_SCHEMA_INSTRUCTIONS = """
+IMPORTANT EXECUTION & OUTPUT CONTRACT FOR GPT 6 LUNA:
+1. When calling tools:
+   - If the user asks a general question like "Where is my order?" without naming an order_ref or awb, and <runtime_context> lists multiple owned_orders, call NO tools and return all owned_orders in `order_cards` with `ask_order_selection: true`.
+   - If the user mentions a specific order_ref (e.g. LUM-1001) or awb (e.g. AWB-...), or has only 1 owned order, call `get_tracking(order_ref=..., awb=...)` first.
+   - If `get_tracking` returns `NOT_FOUND` (is_error=true), do NOT repeat the unowned order_ref or awb in `reply_text`; state that no matching order was found for this account.
+   - For cancellation requests: if the user has NOT yet replied confirming cancellation after a prior confirmation prompt, do NOT call `cancel_order`. First call `get_tracking` to check status. If status is `ORDER_PLACED` or `MANIFESTED`, ask the user to confirm cancelling the order (include the order_ref, the word "cancel", "confirm", and a "?"). If status is `IN_TRANSIT`, `OUT_FOR_DELIVERY`, `FAILED_DELIVERY`, or `DELIVERED`, refuse cancellation and explain it is only possible before carrier pickup.
+   - When the user replies "Yes" / confirms after a cancellation confirmation question, call `cancel_order(order_ref=..., customer_confirmed=true)`.
+   - For refund questions, call `get_refund_status(order_ref=...)`. If it returns "not applicable", explain that Cash on Delivery (COD) orders have no online prepayment refund.
+   - When the user asks for a human support agent, call `escalate_to_human(reason=..., category="HUMAN_REQUESTED")` and set `escalate: true`. If `is_business_hours` is false in `<runtime_context>`, mention that the request is outside business hours and an agent will follow up when business hours resume.
+2. When returning your final response (no tool calls in this step), output ONLY a valid JSON object matching the schema:
+   {"reply_text": "...", "order_cards": [{"order_ref": "...", "title": "...", "placed_at": "..."}], "ask_order_selection": bool, "show_return_link": bool, "escalate": bool}
+"""
+
+
+def _convert_to_openai_messages(
+    system_blocks: Any,
+    messages: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    system_text = _extract_system_text(system_blocks)
+    full_system = f"{system_text}\n\n{_LIVE_SCHEMA_INSTRUCTIONS}".strip()
+    openai_msgs: list[dict[str, Any]] = [{"role": "system", "content": full_system}]
+
+    for idx, msg in enumerate(messages):
+        role = str(msg.get("role", "user"))
+        content = msg.get("content")
+
+        if role == "assistant" and isinstance(content, list):
+            text_parts: list[str] = []
+            tool_calls: list[dict[str, Any]] = []
+            for b_idx, block in enumerate(content):
+                if not isinstance(block, dict):
+                    continue
+                b_type = block.get("type")
+                if b_type == "text" and block.get("text"):
+                    text_parts.append(str(block["text"]))
+                elif b_type == "tool_use":
+                    tc_id = str(block.get("id") or f"call_{idx}_{b_idx}")
+                    tool_calls.append(
+                        {
+                            "id": tc_id,
+                            "type": "function",
+                            "function": {
+                                "name": str(block.get("name", "")),
+                                "arguments": json.dumps(block.get("input") or {}),
+                            },
+                        }
+                    )
+            assistant_entry: dict[str, Any] = {
+                "role": "assistant",
+                "content": "\n".join(text_parts) if text_parts else None,
+            }
+            if tool_calls:
+                assistant_entry["tool_calls"] = tool_calls
+            openai_msgs.append(assistant_entry)
+
+        elif role == "user" and isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    openai_msgs.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": str(block.get("tool_use_id", "")),
+                            "content": str(block.get("content", "")),
+                        }
+                    )
+        else:
+            openai_msgs.append({"role": role, "content": str(content or "")})
+
+    return openai_msgs
+
+
+def _convert_to_openai_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    openai_tools: list[dict[str, Any]] = []
+    for tool in tools:
+        if not isinstance(tool, dict) or not tool.get("name"):
+            continue
+        openai_tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": str(tool["name"]),
+                    "description": str(tool.get("description", "")),
+                    "strict": bool(tool.get("strict", True)),
+                    "parameters": tool.get("input_schema", {"type": "object", "properties": {}}),
+                },
+            }
+        )
+    return openai_tools
+
+
+class _LiveGpt6LunaMessagesAPI:
+    """Real network HTTP client for GPT 6 Luna (`gpt-6-luna`) via OpenAI-compatible Chat Completions API."""
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str = "https://api.openai.com/v1",
+        timeout_seconds: float = 30.0,
+    ) -> None:
+        self.api_key = api_key.strip()
+        self.base_url = base_url.rstrip("/")
+        self.timeout_seconds = timeout_seconds
+        self.calls: list[dict[str, Any]] = []
+
+    async def create(self, **kwargs: Any) -> SimulatedMessageResponse:
+        self.calls.append(kwargs)
+        system_blocks = kwargs.get("system") or []
+        messages: list[dict[str, Any]] = list(kwargs.get("messages") or [])
+        tools: list[dict[str, Any]] = list(kwargs.get("tools") or [])
+        tool_choice = kwargs.get("tool_choice") or {}
+        output_config = kwargs.get("output_config") or {}
+        max_tokens = int(kwargs.get("max_tokens") or 1024)
+
+        openai_messages = _convert_to_openai_messages(system_blocks, messages)
+        openai_tools = _convert_to_openai_tools(tools)
+
+        tools_disabled = isinstance(tool_choice, dict) and tool_choice.get("type") == "none"
+
+        payload: dict[str, Any] = {
+            "model": "gpt-6-luna",
+            "messages": openai_messages,
+            "max_completion_tokens": max_tokens,
+            "reasoning_effort": "none",
+        }
+        if openai_tools and not tools_disabled:
+            payload["tools"] = openai_tools
+            payload["tool_choice"] = "auto"
+
+        fmt = output_config.get("format") if isinstance(output_config, dict) else None
+        if isinstance(fmt, dict) and fmt.get("type") == "json_schema" and isinstance(fmt.get("schema"), dict):
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "wismo_reply",
+                    "strict": True,
+                    "schema": fmt["schema"],
+                },
+            }
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        url = f"{self.base_url}/chat/completions"
+
+        last_error_text = ""
+        last_status = 0
+
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            try:
+                resp = await client.post(url, headers=headers, json=payload)
+                last_status = resp.status_code
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return self._parse_openai_response(data)
+                last_error_text = resp.text
+            except httpx.HTTPError as exc:
+                last_error_text = f"Network error: {exc}"
+
+        # Surface live API error transparently in reply_text so the user sees the real status
+        err_summary = last_error_text[:280].replace("\n", " ")
+        error_reply = json.dumps(
+            {
+                "reply_text": (
+                    f"[GPT 6 Luna Live API Error (HTTP {last_status})]: Could not complete live request "
+                    f"to {url}. Details: {err_summary}"
+                ),
+                "order_cards": [],
+                "ask_order_selection": False,
+                "show_return_link": False,
+                "escalate": False,
+            }
+        )
+        return SimulatedMessageResponse(
+            content=[{"type": "text", "text": error_reply}],
+            stop_reason="end_turn",
+            model="gpt-6-luna",
+            usage=SimulatedUsage(input_tokens=0, output_tokens=0, cache_read_input_tokens=0),
+        )
+
+    def _parse_openai_response(self, data: dict[str, Any]) -> SimulatedMessageResponse:
+        choices = data.get("choices") or []
+        choice = choices[0] if choices else {}
+        message = choice.get("message") or {}
+        finish_reason = str(choice.get("finish_reason") or "stop")
+
+        content_blocks: list[dict[str, Any]] = []
+        raw_tool_calls = message.get("tool_calls") or []
+
+        for tc in raw_tool_calls:
+            if not isinstance(tc, dict):
+                continue
+            fn = tc.get("function") or {}
+            raw_args = fn.get("arguments") or "{}"
+            try:
+                parsed_args = json.loads(raw_args) if isinstance(raw_args, str) else dict(raw_args)
+            except ValueError:
+                parsed_args = {}
+            content_blocks.append(
+                {
+                    "type": "tool_use",
+                    "id": str(tc.get("id") or "call_live_1"),
+                    "name": str(fn.get("name") or ""),
+                    "input": parsed_args,
+                }
+            )
+
+        msg_content = message.get("content")
+        if isinstance(msg_content, str) and msg_content.strip():
+            content_blocks.append({"type": "text", "text": msg_content.strip()})
+
+        if raw_tool_calls:
+            stop_reason = "tool_use"
+        elif message.get("refusal"):
+            stop_reason = "refusal"
+        elif finish_reason == "length":
+            stop_reason = "max_tokens"
+        else:
+            stop_reason = "end_turn"
+
+        usage_data = data.get("usage") or {}
+        prompt_tokens = int(usage_data.get("prompt_tokens") or 0)
+        completion_tokens = int(usage_data.get("completion_tokens") or 0)
+        prompt_details = usage_data.get("prompt_tokens_details") or {}
+        cached_tokens = int(prompt_details.get("cached_tokens") or 0)
+
+        return SimulatedMessageResponse(
+            content=content_blocks,
+            stop_reason=stop_reason,
+            model="gpt-6-luna",
+            usage=SimulatedUsage(
+                input_tokens=prompt_tokens,
+                output_tokens=completion_tokens,
+                cache_read_input_tokens=cached_tokens,
+            ),
+        )
+
+
+class LiveGpt6LunaClient:
+    """Live HTTP client powered by GPT 6 Luna (`gpt-6-luna`)."""
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str = "https://api.openai.com/v1",
+        timeout_seconds: float = 30.0,
+    ) -> None:
+        self.messages = _LiveGpt6LunaMessagesAPI(
+            api_key=api_key,
+            base_url=base_url,
+            timeout_seconds=timeout_seconds,
+        )
+

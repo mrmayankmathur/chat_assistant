@@ -53,7 +53,7 @@ FIXED_NOW = datetime(2026, 10, 18, 10, 0, 0, tzinfo=UTC)
 TEST_SETTINGS = Settings(
     phone_hmac_secret="test-secret-key-123",
     default_phone_region="IN",
-    llm_model="claude-opus-5-5",
+    llm_model="gpt-6-luna",
 )
 
 
@@ -69,7 +69,7 @@ class FakeUsage:
 class FakeMessageResponse:
     content: list[dict[str, Any]]
     stop_reason: str = "end_turn"
-    model: str = "claude-opus-5-5"
+    model: str = "gpt-6-luna"
     usage: FakeUsage = field(default_factory=FakeUsage)
 
 
@@ -1007,4 +1007,127 @@ def test_tenant_id_strictly_from_principal_never_trusted_from_body() -> None:
     )
     assert resp_mismatch.status_code == 403
     assert len(anthropic_client.messages.calls) == 0
+
+
+def test_interactive_frontend_and_sandbox_playground_end_to_end() -> None:
+    from app.main import build_playground_app
+
+    playground_app, _ = build_playground_app()
+    client = TestClient(playground_app)
+
+    # 1. GET / serves the interactive frontend HTML
+    index_resp = client.get("/")
+    assert index_resp.status_code == 200
+    assert "WISMO Support Assistant" in index_resp.text
+
+    # 2. GET /v1/sandbox/state returns initial seeded state
+    state_resp = client.get("/v1/sandbox/state")
+    assert state_resp.status_code == 200
+    state_data = state_resp.json()
+    assert state_data["tenant"]["is_business_hours"] is True
+    assert "GPT 6 Luna" in state_data["tenant"]["llm_mode"]
+    assert len(state_data["orders"]) == 6
+
+    # 3. Ambiguous order query returns order cards
+    chat_resp_1 = client.post(
+        "/v1/chat",
+        headers={"X-Tenant-Id": "1"},
+        json={
+            "channel": "whatsapp",
+            "external_message_id": "ui-1",
+            "phone": CUSTOMER_A_PHONE_E164,
+            "text": "Where is my order?",
+        },
+    )
+    assert chat_resp_1.status_code == 200
+    reply_1 = chat_resp_1.json()
+    assert reply_1["ask_order_selection"] is True
+    assert len(reply_1["order_cards"]) >= 4
+
+    # 4. Two-step pre-pickup cancellation via natural "Yes" confirmation
+    chat_resp_2 = client.post(
+        "/v1/chat",
+        headers={"X-Tenant-Id": "1"},
+        json={
+            "channel": "whatsapp",
+            "external_message_id": "ui-2",
+            "phone": CUSTOMER_A_PHONE_E164,
+            "text": "Please cancel my order LUM-1001",
+        },
+    )
+    assert chat_resp_2.status_code == 200
+    assert "confirm" in chat_resp_2.json()["reply_text"].lower()
+
+    chat_resp_3 = client.post(
+        "/v1/chat",
+        headers={"X-Tenant-Id": "1"},
+        json={
+            "channel": "whatsapp",
+            "external_message_id": "ui-3",
+            "phone": CUSTOMER_A_PHONE_E164,
+            "text": "Yes",
+        },
+    )
+    assert chat_resp_3.status_code == 200
+    assert "cancelled" in chat_resp_3.json()["reply_text"].lower()
+
+    state_after_cancel = client.get("/v1/sandbox/state").json()
+    lum_1001 = next(o for o in state_after_cancel["orders"] if o["order_ref"] == "LUM-1001")
+    assert lum_1001["status"] == "CANCELLED"
+
+    # 5. Toggle business hours and reset sandbox
+    bh_resp = client.post(
+        "/v1/sandbox/business-hours",
+        json={"inside_business_hours": False},
+    )
+    assert bh_resp.status_code == 200
+    assert bh_resp.json()["tenant"]["is_business_hours"] is False
+
+    reset_resp = client.post("/v1/sandbox/reset")
+    assert reset_resp.status_code == 200
+    lum_1001_reset = next(o for o in reset_resp.json()["orders"] if o["order_ref"] == "LUM-1001")
+    assert lum_1001_reset["status"] == "ORDER_PLACED"
+
+    # 6. Place an instant demo order from the storefront catalog and track it in chat
+    create_resp = client.post(
+        "/v1/sandbox/create-order",
+        json={
+            "persona_id": "alice",
+            "sku": "OIL-ROSEHIP",
+            "name": "Cold-Pressed Rosehip Facial Oil",
+            "price_cents": 4400,
+            "payment_mode": "PREPAID",
+        },
+    )
+    assert create_resp.status_code == 200
+    created_data = create_resp.json()
+    new_ref = created_data["created_order_ref"]
+    assert new_ref == "LUM-1007"
+    assert len(created_data["state"]["orders"]) == 7
+
+    chat_resp_new = client.post(
+        "/v1/chat",
+        headers={"X-Tenant-Id": "1"},
+        json={
+            "channel": "web",
+            "external_message_id": "ui-4",
+            "phone": CUSTOMER_A_PHONE_E164,
+            "text": f"Where is my order {new_ref}?",
+        },
+    )
+    assert chat_resp_new.status_code == 200
+    assert new_ref in chat_resp_new.json()["reply_text"]
+
+    # 7. Verify all recorded LLM calls in the sandbox are strictly powered by gpt-6-luna
+    final_state = client.get("/v1/sandbox/state").json()
+    assert final_state["tenant"]["llm_mode"] in (
+        "GPT 6 Luna (gpt-6-luna)",
+        "GPT 6 Luna · Live (gpt-6-luna)",
+    )
+    assert len(final_state["llm_calls"]) >= 2
+    assert all(call["model"] == "gpt-6-luna" for call in final_state["llm_calls"])
+    assert Settings(llm_model="any-other-model").llm_model == "gpt-6-luna"
+
+
+
 

@@ -1161,12 +1161,12 @@ class ResolutionEvaluator:
         *,
         anthropic_client: Any,
         session: Session | None = None,
-        model: str = "claude-opus-5-5",
+        model: str = "gpt-6-luna",
         idle_minutes: int = IDLE_THRESHOLD_MINUTES,
     ) -> None:
         self.anthropic_client = anthropic_client
         self.session = session
-        self.model = model
+        self.model = "gpt-6-luna"
         self.idle_minutes = idle_minutes
 
         # In-memory storage when running without SQLAlchemy session
