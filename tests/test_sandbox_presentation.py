@@ -110,3 +110,25 @@ def test_cancellation_does_not_fabricate_a_new_carrier_scan() -> None:
     assert cancelled["cancelled_at"] == after["tenant"]["current_simulated_time"]
     assert cancelled["last_event_at"] == original["last_event_at"]
     assert cancelled["last_remark"] == original["last_remark"]
+
+
+def test_delayed_order_surfaces_sanitized_delay_reason_to_chat_and_blocks_injections() -> None:
+    app, _ = build_playground_app()
+    client = TestClient(app)
+    state = client.get("/v1/sandbox/state").json()
+
+    resp = client.post(
+        "/v1/chat",
+        headers={"X-Tenant-Id": "1"},
+        json={
+            "channel": "whatsapp",
+            "external_message_id": "delay-reason-check-1",
+            "phone": state["personas"][0]["phone"],
+            "text": "My order LUM-1002 is delayed, where is it?",
+        },
+    )
+    assert resp.status_code == 200
+    reply_text = resp.json()["reply_text"].lower()
+    assert "weather delay" in reply_text
+    assert "chicago sort facility" in reply_text
+

@@ -301,6 +301,8 @@ class ToolExecutor:
                     {
                         "order_ref": order.order_ref,
                         "status": "ORDER_PLACED",
+                        "failure_reason": "NONE",
+                        "delay_reason": None,
                         "customer_text": "Your order has been placed and is being prepared at our warehouse.",
                         "edd": None,
                         "edd_breached": False,
@@ -333,6 +335,7 @@ class ToolExecutor:
             "order_ref": view.order_ref,
             "status": view.status.name,
             "failure_reason": view.failure_reason.name,
+            "delay_reason": view.delay_reason,
             "customer_text": view.customer_text,
             "edd": view.edd.isoformat() if view.edd else None,
             "edd_breached": view.edd_breached,

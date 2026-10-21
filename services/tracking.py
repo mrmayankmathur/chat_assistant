@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -102,6 +103,61 @@ class TrackingView:
     edd_breached: bool
     ofd_attempts: int
     last_events: list[dict[str, Any]]
+    delay_reason: str | None = None
+
+
+_UNSAFE_REMARK_RE = re.compile(
+    r"("
+    r"ignore\s+previous|system\s+override|instruction|prompt|"
+    r"\botp\b|\bcvv\b|credit\s+card|password|\bpin\b|\bsecret\b|"
+    r"delhivery|bluedart|blue\s*dart|fedex|\bups\b|\bdhl\b|xpressbees|shadowfax|dtdc|"
+    r"\blum-\d+\b|\bord-[a-z0-9-]+\b|\bawb-[a-z0-9-]+\b|https?://|[\[\]<>]"
+    r")",
+    re.IGNORECASE,
+)
+
+_DELAY_INDICATOR_RE = re.compile(
+    r"\b("
+    r"delay|delayed|weather|storm|rain|fog|snow|flood|cyclone|"
+    r"customs|congestion|backlog|breakdown|disruption|closure|"
+    r"strike|curfew|hold|exception|misrouted"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_CLAUSE_SPLIT_RE = re.compile(r"\s+(?:[-–—]|:|;)\s+")
+
+
+def _sanitize_location_for_copy(location: str | None) -> str | None:
+    if not location:
+        return None
+    cleaned = " ".join(location.strip().split())
+    if not cleaned or len(cleaned) > 80 or _UNSAFE_REMARK_RE.search(cleaned):
+        return None
+    return cleaned
+
+
+def _resolve_latest_delay_reason(
+    events: Sequence[ShipmentEvent],
+) -> tuple[str | None, str | None]:
+    for ev in sorted(events, key=lambda e: e.event_at, reverse=True):
+        if (
+            ShipmentStatus(ev.status) == ShipmentStatus.FAILED_DELIVERY
+            and FailureReason(ev.failure_reason) != FailureReason.NONE
+        ):
+            continue
+        raw = " ".join((ev.raw_remark or "").strip().split())
+        if not raw or len(raw) > 160 or _UNSAFE_REMARK_RE.search(raw):
+            continue
+        if not _DELAY_INDICATOR_RE.search(raw):
+            continue
+
+        clauses = [c.strip(" .") for c in _CLAUSE_SPLIT_RE.split(raw) if c.strip(" .")]
+        matching_clauses = [c for c in clauses if _DELAY_INDICATOR_RE.search(c)]
+        chosen = matching_clauses[-1] if matching_clauses else raw.strip(" .")
+        if chosen:
+            return chosen, _sanitize_location_for_copy(ev.location)
+    return None, None
 
 
 def _resolve_latest_failure_reason(events: Sequence[ShipmentEvent]) -> FailureReason:
@@ -189,6 +245,18 @@ class TrackingService:
             failure_reason=failure_reason,
         )
 
+        delay_reason: str | None = None
+        if status not in NON_BREACH_STATUSES and failure_reason == FailureReason.NONE:
+            delay_reason, delay_location = _resolve_latest_delay_reason(events)
+            if delay_reason:
+                base_text = customer_text.rstrip(".")
+                if delay_location:
+                    customer_text = (
+                        f"{base_text} (latest scan at {delay_location} notes: {delay_reason})."
+                    )
+                else:
+                    customer_text = f"{base_text} (latest scan notes: {delay_reason})."
+
         tenant_tz = ZoneInfo(tenant.timezone)
         today_in_tenant_tz = current_now.astimezone(tenant_tz).date()
 
@@ -222,6 +290,7 @@ class TrackingService:
             edd_breached=edd_breached,
             ofd_attempts=ofd_attempts,
             last_events=last_events,
+            delay_reason=delay_reason,
         )
 
     view = _ViewMethodDescriptor()
